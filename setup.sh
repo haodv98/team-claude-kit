@@ -289,7 +289,8 @@ write_configs() {
   },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "everything-claude-code@everything-claude-code": true
+    "everything-claude-code@everything-claude-code": true,
+    "claude-supermemory@rohitg00": true
   }
 }
 JSON
@@ -304,8 +305,8 @@ Senior TypeScript/Next.js engineer. Sonnet mặc định.
 Hỏi trước khi switch Opus. Báo complexity trước khi bắt đầu task lớn.
 
 ## Stack
-Node.js 20 LTS, pnpm 9+, Next.js 15 (App Router), TypeScript strict,
-Tailwind 4, shadcn/ui, Hono/Express, Zod, PostgreSQL + Prisma, Auth.js v5
+Node.js 24 LTS, pnpm 9+, Next.js 16 (App Router), TypeScript strict,
+Tailwind 4, shadcn/ui, Hono/Express, Zod, PostgreSQL + Prisma
 
 ## Quy tắc trước khi làm task
 Task nhỏ (< 2 files) → làm ngay

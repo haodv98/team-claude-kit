@@ -67,9 +67,8 @@ Không cần delegate khi:
 
 ## Context Management
 
-<!-- - /compact khi context > 70%
-- /clear khi context > 90%, sau đó reload CLAUDE.md -->
-
+- /compact khi context > 70%
+- /clear khi context > 90%, sau đó reload CLAUDE.md
 - Dùng /checkpoint để save state trước khi clear
 
 ---

@@ -1,31 +1,17 @@
 {
-  "model": "claude-sonnet-4-6",
-
+  "model": "claude-sonnet-3-7",
   "hooks": {
-    "SessionStart": [
-      { "command": "node ~/.claude/hooks/session-start.js" }
-    ],
-    "PreToolUse": [
-      { "command": "node ~/.claude/hooks/pre-tool.js" }
-    ],
-    "PostToolUse": [
-      { "command": "node ~/.claude/hooks/post-tool.js" }
-    ],
-    "Stop": [
-      { "command": "node ~/.claude/hooks/session-summary.js" }
-    ]
+    "SessionStart": [{ "command": "bun ~/.claude/hooks/session-start.js" }],
+    "Stop":         [{ "command": "bun ~/.claude/hooks/session-summary.js" }]
   },
-
   "mcpServers": {
+    "postgresql": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"]
+    },
     "context7": {
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp@latest"]
-    },
-    "github": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm",
-        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
-        "ghcr.io/github/github-mcp-server"]
     },
     "sentry": {
       "type": "http",
@@ -38,9 +24,9 @@
       "headers": { "Authorization": "Bearer ${FIGMA_TOKEN}" }
     }
   },
-
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "everything-claude-code@everything-claude-code": true
+    "everything-claude-code@everything-claude-code": true,
+    "claude-supermemory@rohitg00": true
   }
 }

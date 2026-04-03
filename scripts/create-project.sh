@@ -8,7 +8,7 @@ log()  { echo -e "${GREEN}✓${NC} $1"; }
 info() { echo -e "${CYAN}→${NC} $1"; }
 
 echo ""; echo "Tạo project mới"; echo "================"
-echo "1) nextjs-saas    — Next.js 15, Auth, Billing"
+echo "1) nextjs-saas    — Next.js 16, Auth, Billing"
 echo "2) node-api       — REST API, Prisma, Hono"
 echo "3) internal-dashboard — Admin panel"
 echo "4) baas-service   — Backend service"

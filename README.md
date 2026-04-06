@@ -51,6 +51,15 @@ bash bootstrap.sh --target cursor --languages typescript
 # Codex thay vì Claude Code
 bash bootstrap.sh --target codex --languages typescript
 
+# Global + project cụ thể
+bash bootstrap.sh --target claude --project ~/workspace/my-app
+
+# Thư mục hiện tại
+bash bootstrap.sh --target claude --project .
+
+# Dry-run xem trước
+bash bootstrap.sh --target claude --project ~/workspace/my-app --dry-run
+
 # Không cần confirm (CI/CD hoặc onboard nhanh)
 bash bootstrap.sh --yes
 

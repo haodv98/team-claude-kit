@@ -5,27 +5,30 @@
 #   bash bootstrap.sh [options]
 #
 # Options:
-#   --target   <claude|cursor|codex>   Default: claude
-#   --languages <ts|typescript|py|...> Default: typescript
-#                                      Nhiều ngôn ngữ: --languages "typescript python"
-#   --yes | -y                         Auto-accept all prompts
-#   --dry-run                          Preview only, no changes
-#   --help                             Show this help
+#   --target    <claude|cursor|codex>     Default: claude
+#   --languages <ts|typescript|py|...>   Default: typescript
+#   --project   <path>                   Cài vào project cụ thể (project scope)
+#                                        VD: --project ~/workspace/my-app
+#   --yes | -y                           Auto-accept all prompts
+#   --dry-run                            Preview only, no changes
+#   --rollback                           Rollback lần install trước
+#   --help                               Show this help
 #
 # Examples:
-#   bash bootstrap.sh
-#   bash bootstrap.sh --target claude --languages typescript
-#   bash bootstrap.sh --target codex --languages "typescript python"
-#   bash bootstrap.sh --target cursor --languages typescript
-#   bash bootstrap.sh --yes --dry-run
+#   bash bootstrap.sh                                        # global only
+#   bash bootstrap.sh --project ~/workspace/my-app          # global + project
+#   bash bootstrap.sh --project . --target claude --yes     # project = thư mục hiện tại
+#   bash bootstrap.sh --target codex --languages "ts py"
+#   bash bootstrap.sh --target claude --rollback
 
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ─── Defaults ────────────────────────────────────────────────────
 TARGET="claude"
 LANGUAGES="typescript"
+PROJECT_PATH=""       # empty = global only; set = cài thêm project scope
 DRY_RUN=false
 YES=false
 ERRORS=()
@@ -46,14 +49,14 @@ while [[ $# -gt 0 ]]; do
     --languages)
       [[ -z "${2:-}" ]] && { echo "--languages requires a value"; exit 1; }
       LANGUAGES="$2"; shift 2 ;;
+    --project)
+      [[ -z "${2:-}" ]] && { echo "--project requires a path"; exit 1; }
+      PROJECT_PATH="$2"; shift 2 ;;
     --yes|-y)    YES=true;     shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
     --rollback)
-      # Rollback sau khi load modules
       source "$SCRIPT_DIR/lib/common.sh"
       source "$SCRIPT_DIR/lib/backup.sh"
-      # TARGET cần được parse trước --rollback, ví dụ:
-      # bash bootstrap.sh --target codex --rollback
       step_rollback
       exit $?
       ;;
@@ -90,10 +93,10 @@ case "$TARGET" in
   *) echo "Invalid --target '$TARGET'. Must be: claude | cursor | codex"; exit 1 ;;
 esac
 
-export DRY_RUN YES TARGET LANGUAGES SCRIPT_DIR ERRORS
+export DRY_RUN YES TARGET LANGUAGES PROJECT_PATH SCRIPT_DIR ERRORS
 
 # ─── Load modules ────────────────────────────────────────────────
-for _lib in common backup ecc mcp gitnexus codex aliases; do
+for _lib in common backup ecc mcp gitnexus codex aliases project; do
   _f="$SCRIPT_DIR/lib/${_lib}.sh"
   if [ ! -f "$_f" ]; then
     echo "Missing lib file: $_f"
@@ -108,6 +111,7 @@ main() {
   header "team-claude-kit setup"
   info "Target   : $TARGET"
   info "Languages: $LANGUAGES"
+  [ -n "$PROJECT_PATH" ] && info "Project  : $PROJECT_PATH"
   [ "$DRY_RUN" = true ] && warn "DRY RUN — no changes will be made"
   [ "$YES"     = true ] && info "Auto-yes mode"
   echo ""
@@ -127,6 +131,11 @@ main() {
       run_step "Shell aliases"  step_aliases
       ;;
   esac
+
+  # Project scope — chạy sau global, override lên trên
+  if [ -n "$PROJECT_PATH" ]; then
+    run_step "Project scope → $PROJECT_PATH" step_project
+  fi
 
   print_summary
 }

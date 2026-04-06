@@ -6,7 +6,7 @@ step_aliases() {
   rc="$HOME/.zshrc"
   [ ! -f "$rc" ] && rc="$HOME/.bashrc"
 
-  step "Shell aliases → $rc"
+  section "Shell aliases → $rc"
 
   if grep -q "# team-claude-kit" "$rc" 2>/dev/null; then
     ok "Aliases đã có trong $rc — bỏ qua"

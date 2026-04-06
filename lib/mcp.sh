@@ -34,11 +34,11 @@ step_mcp() {
   }
 
   add_mcp "context7" \
-    "claude mcp add --scope user --transport stdio context7 -- npx -y @upstash/context7-mcp@latest" \
+    "claude mcp add --scope user stdio context7 -- npx -y @upstash/context7-mcp@latest" \
     "live docs, giảm hallucinate"
 
   add_mcp "sequential-thinking" \
-    "claude mcp add --scope user --transport stdio sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking" \
+    "claude mcp add --scope user stdio sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking" \
     "multi-step reasoning"
 
   # GitHub — cần token

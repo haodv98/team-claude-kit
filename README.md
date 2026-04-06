@@ -48,6 +48,9 @@ bash bootstrap.sh --target claude --languages "typescript python"
 # Cursor thay vì Claude Code
 bash bootstrap.sh --target cursor --languages typescript
 
+# Codex thay vì Claude Code
+bash bootstrap.sh --target codex --languages typescript
+
 # Không cần confirm (CI/CD hoặc onboard nhanh)
 bash bootstrap.sh --yes
 
@@ -63,6 +66,12 @@ Bootstrap sẽ tự động:
 - Thêm aliases vào `~/.zshrc`
 
 > Bước nào fail sẽ được log rõ — các bước còn lại vẫn tiếp tục chạy.
+
+#### Rollback Backup Cũ
+
+```bash
+bash bootstrap.sh --target codex --rollback
+```
 
 ### Bước 4 — Apply shell aliases
 

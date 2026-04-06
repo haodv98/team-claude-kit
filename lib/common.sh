@@ -3,105 +3,141 @@
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
+BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
 
-ok()     { echo -e "${GREEN}  ✓${NC} $1"; }
-info()   { echo -e "${CYAN}  →${NC} $1"; }
-warn()   { echo -e "${YELLOW}  ⚠${NC} $1"; }
-header() { echo -e "\n${BOLD}${CYAN}══ $1 ══${NC}"; }
-step()   { echo -e "\n${BOLD}▶ $1${NC}"; }
+# ─── Logging ─────────────────────────────────────────────────────
+# Tất cả log đều ghi thẳng ra /dev/tty để không bị pipe nuốt mất
 
-# Run a command, or print it in dry-run mode
+_tty() { printf "%b\n" "$*" > /dev/tty; }
+
+ok()     { _tty "  ${GREEN}✓${NC}  $1"; }
+info()   { _tty "  ${CYAN}→${NC}  $1"; }
+warn()   { _tty "  ${YELLOW}⚠${NC}  $1"; }
+err_log(){ _tty "  ${RED}✗${NC}  $1"; }   # err() đã được dùng bởi set -e
+
+# In output của tool (indent, không dùng /dev/tty — để pipe xử lý)
+out()    { echo "    $1"; }
+
+header() {
+  _tty ""
+  _tty "${BOLD}${CYAN}══════════════════════════════════════${NC}"
+  _tty "${BOLD}${CYAN}  $1${NC}"
+  _tty "${BOLD}${CYAN}══════════════════════════════════════${NC}"
+}
+
+# Section header trong một step
+section() {
+  _tty ""
+  _tty "  ${BOLD}${BLUE}▸ $1${NC}"
+}
+
+# Alias để tránh lỗi nếu lib nào đó vẫn gọi step()
+step() { section "$@"; }
+
+# ─── ask() ───────────────────────────────────────────────────────
+# Luôn đọc/ghi thẳng /dev/tty — không bị ảnh hưởng bởi pipe
+ask() {
+  [ "${YES:-false}" = true ] && return 0
+  [ ! -e /dev/tty ]          && return 0
+
+  _tty ""
+  printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty
+  local REPLY
+  IFS= read -r -n 1 REPLY < /dev/tty
+  printf "\n" > /dev/tty
+  [[ "${REPLY:-n}" =~ ^[Yy]$ ]]
+}
+
+# ─── run() ───────────────────────────────────────────────────────
 run() {
   if [ "${DRY_RUN:-false}" = true ]; then
-    echo -e "${DIM}  [dry-run] $*${NC}"
+    _tty "  ${DIM}[dry-run] $*${NC}"
     return 0
   fi
   eval "$@"
 }
 
-# Prompt — auto-yes in non-interactive or --yes mode
-# In prompt ra /dev/tty và đọc input từ /dev/tty
-# → hoạt động đúng dù stdout có bị pipe trong run_step
-ask() {
-  [ "${YES:-false}" = true ] && return 0
-  [ ! -e /dev/tty ]          && return 0   # không có terminal → auto-yes
+# ─── has() / need() ──────────────────────────────────────────────
+has()  { command -v "$1" &>/dev/null; }
+need() { has "$1" || { err_log "$1 required. $2"; exit 1; }; }
 
-  # In prompt thẳng ra terminal (không qua pipe)
-  printf "  \033[1;33m?\033[0m %s (y/n) " "$1" > /dev/tty
-  local REPLY
-  read -r -n 1 REPLY < /dev/tty
-  echo > /dev/tty   # xuống dòng
-  [[ $REPLY =~ ^[Yy]$ ]]
-}
+# ─── run_step() ──────────────────────────────────────────────────
+# Layout:
+#
+#  ╔═ Step: ECC + ccg-workflow
+#  ║
+#  ║  ▸ Cloning ECC          ← section() → /dev/tty trực tiếp
+#  ║  ? Cài ECC plugin?      ← ask()     → /dev/tty trực tiếp
+#      git clone output...   ← stdout của "$fn" → indent 4 spaces
+#  ║
+#  ╚═ ✓ ECC + ccg-workflow (12s)
 
-# Check if command exists
-has() { command -v "$1" &>/dev/null; }
-
-# ─── Step runner — bước nào fail thì log + tiếp tục ─────────────
-# Usage: run_step "Label" function_name
 run_step() {
   local label="$1"
   local fn="$2"
   local start; start=$(date +%s)
-  local log; log=$(mktemp)
+  local exit_file; exit_file=$(mktemp)
 
-  echo ""
-  echo -e "${BOLD}┌─ Step: $label${NC}"
+  _tty ""
+  _tty "${BOLD}╔═ Step: ${label}${NC}"
+  _tty "║"
 
-  # Chạy function trong subshell:
-  # - stdout + stderr ghi vào $log VÀ in ra ngay (tee)
-  # - stdin vẫn nối thẳng tới /dev/tty để ask() nhận input
-  # - prefix mỗi dòng output với "│ "
-  local exit_code=0
+  # Chạy function trong subshell riêng:
+  # - _tty() và ask() ghi/đọc /dev/tty → không bị pipe ảnh hưởng
+  # - stdout + stderr được indent 4 spaces để phân biệt với section/question
+  # - exit code được ghi ra $exit_file để tránh double-run
   (
-    exec 2>&1           # merge stderr vào stdout trong subshell
-    "$fn"
+    "$fn" 2>&1
+    echo $? > "$exit_file"
   ) | while IFS= read -r line; do
-    echo -e "│ $line"
-    echo "$line" >> "$log"
-  done || exit_code=${PIPESTATUS[0]}
+    printf "    %s\n" "$line" > /dev/tty
+  done
+
+  local fn_exit=0
+  [ -s "$exit_file" ] && fn_exit=$(cat "$exit_file")
+  rm -f "$exit_file"
 
   local dur=$(( $(date +%s) - start ))
 
-  if [ "$exit_code" -eq 0 ]; then
-    echo -e "${GREEN}└─ ✓ $label${NC} ${DIM}(${dur}s)${NC}"
+  _tty "║"
+  if [ "$fn_exit" -eq 0 ]; then
+    _tty "${GREEN}╚═ ✓ ${label}${NC} ${DIM}(${dur}s)${NC}"
   else
-    echo -e "${RED}└─ ✗ $label failed (exit $exit_code)${NC}"
-    ERRORS+=("$label (exit $exit_code)")
+    _tty "${RED}╚═ ✗ ${label} failed (exit ${fn_exit})${NC}"
+    ERRORS+=("${label} (exit ${fn_exit})")
   fi
-
-  rm -f "$log"
 }
 
-# ─── Final summary ────────────────────────────────────────────────
+# ─── print_summary() ─────────────────────────────────────────────
 print_summary() {
-  echo ""
-  echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  _tty ""
+  _tty "${BOLD}══════════════════════════════════════${NC}"
 
   if [ ${#ERRORS[@]} -eq 0 ]; then
-    echo -e "${GREEN}${BOLD}  ✓ All steps completed successfully!${NC}"
+    _tty "${GREEN}${BOLD}  ✓  All steps completed!${NC}"
   else
-    echo -e "${YELLOW}${BOLD}  ⚠ Completed with ${#ERRORS[@]} error(s):${NC}"
+    _tty "${YELLOW}${BOLD}  ⚠  Completed with ${#ERRORS[@]} error(s):${NC}"
     for e in "${ERRORS[@]}"; do
-      echo -e "    ${RED}✗${NC} $e"
+      _tty "     ${RED}✗${NC} ${e}"
     done
-    echo ""
-    echo -e "  ${DIM}Xem log từng bước ở trên để biết chi tiết.${NC}"
-    echo -e "  ${DIM}Chạy lại sau khi fix: bash bootstrap.sh --target ${TARGET} --languages \"${LANGUAGES}\"${NC}"
+    _tty ""
+    _tty "  ${DIM}Xem log từng bước ở trên để biết chi tiết.${NC}"
+    _tty "  ${DIM}Chạy lại sau khi fix:${NC}"
+    _tty "  ${DIM}  bash bootstrap.sh --target ${TARGET} --languages \"${LANGUAGES}\"${NC}"
   fi
 
-  echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo ""
-  echo "  Next steps:"
-  echo "  1. source ~/.zshrc"
-  echo "  2. claude login  (nếu chưa)"
-  echo "  3. ccstart"
-  echo ""
-  echo "  Với mỗi project mới:"
-  echo "    cd [project] && gitnexus analyze --skills"
-  echo ""
-  echo -e "  ${YELLOW}Superpowers (trong Claude Code session):${NC}"
-  echo "    /plugin marketplace add obra/superpowers-marketplace"
-  echo "    /plugin install superpowers@superpowers-marketplace"
-  echo ""
+  _tty "${BOLD}══════════════════════════════════════${NC}"
+  _tty ""
+  _tty "  Next steps:"
+  _tty "  1. source ~/.zshrc"
+  _tty "  2. claude login   ${DIM}(nếu chưa)${NC}"
+  _tty "  3. ccstart"
+  _tty ""
+  _tty "  Với mỗi project mới:"
+  _tty "    cd [project] && gitnexus analyze --skills"
+  _tty ""
+  _tty "  ${YELLOW}Superpowers (trong Claude Code session):${NC}"
+  _tty "    /plugin marketplace add obra/superpowers-marketplace"
+  _tty "    /plugin install superpowers@superpowers-marketplace"
+  _tty ""
 }

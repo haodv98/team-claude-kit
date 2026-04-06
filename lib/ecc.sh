@@ -6,7 +6,7 @@ ECC_DIR="$HOME/everything-claude-code"
 
 step_ecc() {
   # ── Clone / update ────────────────────────────────────────────
-  step "Cloning / updating ECC"
+  section "Cloning / updating ECC"
   if [ -d "$ECC_DIR/.git" ]; then
     info "ECC đã có tại $ECC_DIR — pulling..."
     run "git -C '$ECC_DIR' pull --quiet --ff-only" \
@@ -18,7 +18,7 @@ step_ecc() {
   fi
 
   # ── Run install.sh ────────────────────────────────────────────
-  step "ECC install.sh --target $TARGET $LANGUAGES"
+  section "ECC install.sh --target $TARGET $LANGUAGES"
 
   if [ ! -f "$ECC_DIR/install.sh" ]; then
     warn "install.sh not found in $ECC_DIR — skipping"
@@ -37,7 +37,7 @@ step_ecc() {
 
   # ── Plugin (chỉ khi target là claude) ─────────────────────────
   if [ "$TARGET" = "claude" ] && has claude; then
-    step "ECC Claude plugin"
+    section "ECC Claude plugin"
     if ask "Cài ECC plugin qua Claude marketplace?"; then
       run "claude plugin marketplace add affaan-m/everything-claude-code 2>/dev/null || true"
       if run "claude plugin install everything-claude-code@everything-claude-code 2>/dev/null"; then
@@ -52,7 +52,7 @@ step_ecc() {
   fi
 
   # ── ccg-workflow runtime ───────────────────────────────────────
-  step "ccg-workflow (cho /multi-* commands)"
+  section "ccg-workflow (cho /multi-* commands)"
   if ask "Cài ccg-workflow runtime?"; then
     if run "npx ccg-workflow 2>&1"; then
       ok "ccg-workflow initialized"

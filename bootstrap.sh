@@ -46,8 +46,17 @@ while [[ $# -gt 0 ]]; do
     --languages)
       [[ -z "${2:-}" ]] && { echo "--languages requires a value"; exit 1; }
       LANGUAGES="$2"; shift 2 ;;
-    --yes|-y)   YES=true;     shift ;;
-    --dry-run)  DRY_RUN=true; shift ;;
+    --yes|-y)    YES=true;     shift ;;
+    --dry-run)   DRY_RUN=true; shift ;;
+    --rollback)
+      # Rollback sau khi load modules
+      source "$SCRIPT_DIR/lib/common.sh"
+      source "$SCRIPT_DIR/lib/backup.sh"
+      # TARGET cần được parse trước --rollback, ví dụ:
+      # bash bootstrap.sh --target codex --rollback
+      step_rollback
+      exit $?
+      ;;
     --help|-h)  show_help ;;
     *)
       echo "Unknown option: $1"
@@ -84,7 +93,7 @@ esac
 export DRY_RUN YES TARGET LANGUAGES SCRIPT_DIR ERRORS
 
 # ─── Load modules ────────────────────────────────────────────────
-for _lib in common ecc mcp gitnexus codex aliases; do
+for _lib in common backup ecc mcp gitnexus codex aliases; do
   _f="$SCRIPT_DIR/lib/${_lib}.sh"
   if [ ! -f "$_f" ]; then
     echo "Missing lib file: $_f"
@@ -105,17 +114,17 @@ main() {
 
   case "$TARGET" in
     claude|cursor)
-      # ECC hỗ trợ claude và cursor natively
+      run_step "Backup config"      step_backup
       run_step "ECC + ccg-workflow" step_ecc
       run_step "MCP servers"        step_mcp
       run_step "GitNexus"           step_gitnexus
       run_step "Shell aliases"      step_aliases
       ;;
     codex)
-      # Codex dùng module riêng
-      run_step "Codex CLI"          step_codex
-      run_step "GitNexus"           step_gitnexus
-      run_step "Shell aliases"      step_aliases
+      run_step "Backup config"  step_backup
+      run_step "Codex CLI"      step_codex
+      run_step "GitNexus"       step_gitnexus
+      run_step "Shell aliases"  step_aliases
       ;;
   esac
 

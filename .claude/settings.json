@@ -1,32 +1,8 @@
 {
-  "model": "claude-sonnet-3-7",
-  "hooks": {
-    "SessionStart": [{ "command": "bun ~/.claude/hooks/session-start.js" }],
-    "Stop":         [{ "command": "bun ~/.claude/hooks/session-summary.js" }]
-  },
-  "mcpServers": {
-    "postgresql": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"]
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
-    },
-    "sentry": {
-      "type": "http",
-      "url": "https://mcp.sentry.dev/mcp",
-      "headers": { "Authorization": "Bearer ${SENTRY_TOKEN}" }
-    },
-    "figma": {
-      "type": "http",
-      "url": "https://mcp.figma.com/mcp",
-      "headers": { "Authorization": "Bearer ${FIGMA_TOKEN}" }
+    "model": "sonnet",
+    "env": {
+        "MAX_THINKING_TOKENS": "10000",
+        "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
+        "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
     }
-  },
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true,
-    "everything-claude-code@everything-claude-code": true,
-    "claude-supermemory@rohitg00": true
-  }
 }

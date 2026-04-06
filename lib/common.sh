@@ -20,10 +20,17 @@ run() {
 }
 
 # Prompt — auto-yes in non-interactive or --yes mode
+# In prompt ra /dev/tty và đọc input từ /dev/tty
+# → hoạt động đúng dù stdout có bị pipe trong run_step
 ask() {
   [ "${YES:-false}" = true ] && return 0
-  [ ! -t 0 ]                 && return 0
-  read -r -p "$(echo -e "  ${YELLOW}?${NC} $1 (y/n) ")" -n 1; echo
+  [ ! -e /dev/tty ]          && return 0   # không có terminal → auto-yes
+
+  # In prompt thẳng ra terminal (không qua pipe)
+  printf "  \033[1;33m?\033[0m %s (y/n) " "$1" > /dev/tty
+  local REPLY
+  read -r -n 1 REPLY < /dev/tty
+  echo > /dev/tty   # xuống dòng
   [[ $REPLY =~ ^[Yy]$ ]]
 }
 
@@ -36,20 +43,34 @@ run_step() {
   local label="$1"
   local fn="$2"
   local start; start=$(date +%s)
+  local log; log=$(mktemp)
 
   echo ""
-  echo -e "${BOLD}┌─ Step: $label ${NC}"
+  echo -e "${BOLD}┌─ Step: $label${NC}"
 
-  if "$fn" 2>&1 | sed 's/^/│ /'; then
-    local dur=$(( $(date +%s) - start ))
+  # Chạy function trong subshell:
+  # - stdout + stderr ghi vào $log VÀ in ra ngay (tee)
+  # - stdin vẫn nối thẳng tới /dev/tty để ask() nhận input
+  # - prefix mỗi dòng output với "│ "
+  local exit_code=0
+  (
+    exec 2>&1           # merge stderr vào stdout trong subshell
+    "$fn"
+  ) | while IFS= read -r line; do
+    echo -e "│ $line"
+    echo "$line" >> "$log"
+  done || exit_code=${PIPESTATUS[0]}
+
+  local dur=$(( $(date +%s) - start ))
+
+  if [ "$exit_code" -eq 0 ]; then
     echo -e "${GREEN}└─ ✓ $label${NC} ${DIM}(${dur}s)${NC}"
   else
-    local code=$?
-    local msg="$label failed (exit $code)"
-    echo -e "${RED}└─ ✗ $msg${NC}"
-    ERRORS+=("$msg")
-    # Không exit — tiếp tục bước tiếp theo
+    echo -e "${RED}└─ ✗ $label failed (exit $exit_code)${NC}"
+    ERRORS+=("$label (exit $exit_code)")
   fi
+
+  rm -f "$log"
 }
 
 # ─── Final summary ────────────────────────────────────────────────

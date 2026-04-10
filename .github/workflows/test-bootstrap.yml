@@ -1,0 +1,92 @@
+name: Test Bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bootstrap.sh'
+      - 'lib/**'
+      - 'scripts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'bootstrap.sh'
+      - 'lib/**'
+      - 'scripts/**'
+
+jobs:
+  # ─── Shellcheck — lint toàn bộ bash scripts ─────────────────────
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Lint bootstrap.sh
+        run: shellcheck bootstrap.sh
+      - name: Lint lib/*.sh
+        run: shellcheck lib/*.sh
+      - name: Lint scripts/*.sh
+        run: shellcheck scripts/*.sh
+
+  # ─── Dry-run bootstrap trên Ubuntu ─────────────────────────────
+  bootstrap-dry-run-ubuntu:
+    name: Dry-run (Ubuntu)
+    runs-on: ubuntu-latest
+    needs: shellcheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Dry-run — claude target, typescript
+        run: bash bootstrap.sh --target claude --languages typescript --yes --dry-run
+      - name: Dry-run — claude target, multi-language
+        run: bash bootstrap.sh --target claude --languages "typescript python" --yes --dry-run
+      - name: Dry-run — codex target
+        run: bash bootstrap.sh --target codex --languages typescript --yes --dry-run
+
+  # ─── Dry-run bootstrap trên macOS ──────────────────────────────
+  bootstrap-dry-run-macos:
+    name: Dry-run (macOS)
+    runs-on: macos-latest
+    needs: shellcheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Dry-run — claude target
+        run: bash bootstrap.sh --target claude --yes --dry-run
+
+  # ─── Kiểm tra .gitignore có cover .env.local không ─────────────
+  security-check:
+    name: Security — secrets không được commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kiểm tra .env.local trong .gitignore
+        run: |
+          if ! grep -q "\.env\.local" .gitignore; then
+            echo "❌ .env.local chưa có trong .gitignore!"
+            exit 1
+          fi
+          echo "✅ .env.local đã được gitignore"
+      - name: Kiểm tra không có token hardcode trong scripts
+        run: |
+          # Tìm patterns của token thật (ghp_, sntrys_, figd_)
+          if grep -rE "(ghp_[A-Za-z0-9]{36}|sntrys_[A-Za-z0-9]+|figd_[A-Za-z0-9]+)" \
+            --include="*.sh" --include="*.md" .; then
+            echo "❌ Phát hiện token hardcode!"
+            exit 1
+          fi
+          echo "✅ Không có token hardcode"
+      - name: Kiểm tra README không hướng dẫn export vào shell RC
+        run: |
+          # Cảnh báo nếu README vẫn còn hướng dẫn cũ
+          if grep -q "Thêm vào ~/.zshrc" README.md 2>/dev/null; then
+            echo "⚠️  README vẫn còn hướng dẫn export token vào ~/.zshrc"
+            echo "   Nên cập nhật để hướng dẫn dùng setup-secrets.sh"
+            # Không exit 1 — chỉ warn, không block merge
+          fi

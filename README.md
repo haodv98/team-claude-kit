@@ -139,6 +139,31 @@ ccnew         # wizard chọn template và tạo project
 
 Templates có sẵn: `nextjs-saas`, `node-api`, `internal-dashboard`, `baas-service`
 
+### Graph Source code
+
+Sử dụng thư viện từ [graphify](https://github.com/safishamsi/graphify) để tạo graph
+
+```bash
+# Install graphifyy
+pip install graphifyy && graphify install
+
+# Cài đặt
+# Claude Code
+graphify install
+
+# Codex
+graphify install --platform codex
+
+# Cursor
+graphify cursor install
+
+# Tạo Graph với AI Assistant - từ lần sau có thể query trực tiếp từ Terminal
+/graphify .
+
+# Query
+graphify query "show the auth flow" --graph graphify-out/graph.json
+```
+
 ### Sync kit (mỗi thứ Hai)
 
 ```bash

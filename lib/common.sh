@@ -134,7 +134,7 @@ print_summary() {
   _tty "  3. ccstart"
   _tty ""
   _tty "  Với mỗi project mới:"
-  _tty "    cd [project] && gitnexus analyze --skills"
+  _tty "    cài đặt graphify tương ứng và chạy /graphify . với AI Assistant"
   _tty ""
   _tty "  ${YELLOW}Superpowers (trong Claude Code session):${NC}"
   _tty "    /plugin marketplace add obra/superpowers-marketplace"

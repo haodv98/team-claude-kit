@@ -1,28 +1,27 @@
-node_modules
-
-out
-dist
-*.tgz
-
-coverage
-*.lcov
-
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
+# ─── Secrets — KHÔNG BAO GIỜ commit ─────────────────────────────
 .env
-.env.development.local
-.env.test.local
-.env.production.local
 .env.local
+.env.*.local
+*.token
+*.secret
 
-.eslintcache
-.cache
-*.tsbuildinfo
+# ─── ECC version pin ─────────────────────────────────────────────
+# Bỏ comment dòng dưới nếu muốn mỗi người tự quản lý version riêng
+# .ecc-version
 
-.idea
-
+# ─── OS ──────────────────────────────────────────────────────────
 .DS_Store
-.claude/settings.local.json
-.planning/codebase
+Thumbs.db
+
+# ─── Editor ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Node ────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Logs ────────────────────────────────────────────────────────
+*.log
+bootstrap-error.log

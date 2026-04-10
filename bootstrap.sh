@@ -1,25 +1,18 @@
 #!/usr/bin/env bash
+
 # bootstrap.sh — team-claude-kit setup
 #
 # Usage:
 #   bash bootstrap.sh [options]
 #
 # Options:
-#   --target    <claude|cursor|codex>     Default: claude
-#   --languages <ts|typescript|py|...>   Default: typescript
-#   --project   <path>                   Cài vào project cụ thể (project scope)
-#                                        VD: --project ~/workspace/my-app
-#   --yes | -y                           Auto-accept all prompts
-#   --dry-run                            Preview only, no changes
-#   --rollback                           Rollback lần install trước
-#   --help                               Show this help
-#
-# Examples:
-#   bash bootstrap.sh                                        # global only
-#   bash bootstrap.sh --project ~/workspace/my-app          # global + project
-#   bash bootstrap.sh --project . --target claude --yes     # project = thư mục hiện tại
-#   bash bootstrap.sh --target codex --languages "ts py"
-#   bash bootstrap.sh --target claude --rollback
+#   --target <claude|cursor|codex>   Default: claude
+#   --languages <ts|py|go|...>       Default: typescript
+#   --project <path>                 Cài vào project cụ thể
+#   --yes | -y                       Auto-accept all prompts
+#   --dry-run                        Preview only, no changes
+#   --rollback                       Rollback lần install trước
+#   --help                           Show this help
 
 set -eo pipefail
 
@@ -28,7 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ─── Defaults ────────────────────────────────────────────────────
 TARGET="claude"
 LANGUAGES="typescript"
-PROJECT_PATH=""       # empty = global only; set = cài thêm project scope
+PROJECT_PATH=""
 DRY_RUN=false
 YES=false
 ERRORS=()
@@ -52,15 +45,15 @@ while [[ $# -gt 0 ]]; do
     --project)
       [[ -z "${2:-}" ]] && { echo "--project requires a path"; exit 1; }
       PROJECT_PATH="$2"; shift 2 ;;
-    --yes|-y)    YES=true;     shift ;;
-    --dry-run)   DRY_RUN=true; shift ;;
+    --yes|-y) YES=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
     --rollback)
       source "$SCRIPT_DIR/lib/common.sh"
       source "$SCRIPT_DIR/lib/backup.sh"
       step_rollback
       exit $?
       ;;
-    --help|-h)  show_help ;;
+    --help|-h) show_help ;;
     *)
       echo "Unknown option: $1"
       echo "Run: bash bootstrap.sh --help"
@@ -68,23 +61,96 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Normalize language aliases
+# ─── [MỚI] Dependency check — fail sớm với message rõ ràng ──────
+check_dependencies() {
+  local missing=()
+
+  # Bắt buộc
+  command -v git  >/dev/null 2>&1 || missing+=("git")
+  command -v node >/dev/null 2>&1 || missing+=("node (v18+)")
+  command -v npm  >/dev/null 2>&1 || missing+=("npm")
+
+  # Node version check
+  if command -v node >/dev/null 2>&1; then
+    local node_ver
+    node_ver=$(node -e "process.exit(parseInt(process.versions.node) < 18 ? 1 : 0)" 2>/dev/null; echo $?)
+    [[ "$node_ver" -ne 0 ]] && missing+=("node v18+ (hiện tại: $(node --version))")
+  fi
+
+  # Python 3.10+ — cần cho Graphify
+  if ! command -v python3 >/dev/null 2>&1; then
+    missing+=("python3 (v3.10+) — cần cho Graphify")
+  else
+    local py_ok
+    py_ok="$(python3 -c 'import sys; print(1 if sys.version_info >= (3,10) else 0)' 2>/dev/null)"
+    [[ "$py_ok" != "1" ]] && missing+=("python3 v3.10+ (hiện tại: $(python3 --version))")
+  fi
+
+  # pip — cần để cài graphifyy
+  command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1 || \
+    missing+=("pip / pip3 — cần để cài Graphify")
+
+  # Docker — chỉ cần nếu dùng GitHub MCP
+  if [[ "$TARGET" == "claude" || "$TARGET" == "cursor" ]]; then
+    command -v docker >/dev/null 2>&1 || {
+      echo "⚠️  docker không tìm thấy — GitHub MCP sẽ không hoạt động."
+      echo "   Bỏ qua nếu bạn không dùng GitHub MCP."
+    }
+  fi
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo ""
+    echo "❌ Thiếu dependencies bắt buộc:"
+    for dep in "${missing[@]}"; do
+      echo "   • $dep"
+    done
+    echo ""
+    echo "Cài xong rồi chạy lại bootstrap."
+    exit 1
+  fi
+}
+
+# ─── [MỚI] Detect shell + ghi alias đúng file ───────────────────
+detect_shell_rc() {
+  local shell_name
+  shell_name="$(basename "${SHELL:-bash}")"
+
+  case "$shell_name" in
+    zsh)  echo "$HOME/.zshrc" ;;
+    bash)
+      # macOS dùng .bash_profile, Linux dùng .bashrc
+      if [[ "$(uname)" == "Darwin" ]]; then
+        echo "$HOME/.bash_profile"
+      else
+        echo "$HOME/.bashrc"
+      fi
+      ;;
+    fish) echo "$HOME/.config/fish/config.fish" ;;
+    *)    echo "$HOME/.profile" ;;  # fallback an toàn
+  esac
+}
+
+export SHELL_RC
+SHELL_RC="$(detect_shell_rc)"
+
+# ─── Normalize language aliases ──────────────────────────────────
 normalize_langs() {
   local out=""
   for lang in $1; do
     case "$lang" in
       ts|typescript) out="$out typescript" ;;
-      py|python)     out="$out python"     ;;
-      go|golang)     out="$out golang"     ;;
-      rs|rust)       out="$out rust"       ;;
-      php)           out="$out php"        ;;
-      web)           out="$out web"        ;;
-      swift)         out="$out swift"      ;;
-      *)             out="$out $lang"      ;;
+      py|python)     out="$out python" ;;
+      go|golang)     out="$out golang" ;;
+      rs|rust)       out="$out rust" ;;
+      php)           out="$out php" ;;
+      web)           out="$out web" ;;
+      swift)         out="$out swift" ;;
+      *)             out="$out $lang" ;;
     esac
   done
   echo "${out# }"
 }
+
 LANGUAGES="$(normalize_langs "$LANGUAGES")"
 
 # Validate target
@@ -93,10 +159,10 @@ case "$TARGET" in
   *) echo "Invalid --target '$TARGET'. Must be: claude | cursor | codex"; exit 1 ;;
 esac
 
-export DRY_RUN YES TARGET LANGUAGES PROJECT_PATH SCRIPT_DIR ERRORS
+export DRY_RUN YES TARGET LANGUAGES PROJECT_PATH SCRIPT_DIR SHELL_RC ERRORS
 
 # ─── Load modules ────────────────────────────────────────────────
-for _lib in common backup ecc mcp gitnexus codex aliases project; do
+for _lib in common backup ecc mcp graphify codex aliases project; do
   _f="$SCRIPT_DIR/lib/${_lib}.sh"
   if [ ! -f "$_f" ]; then
     echo "Missing lib file: $_f"
@@ -111,28 +177,31 @@ main() {
   header "team-claude-kit setup"
   info "Target   : $TARGET"
   info "Languages: $LANGUAGES"
+  info "Shell RC : $SHELL_RC"   # [MỚI] hiển thị file alias sẽ được ghi
   [ -n "$PROJECT_PATH" ] && info "Project  : $PROJECT_PATH"
   [ "$DRY_RUN" = true ] && warn "DRY RUN — no changes will be made"
-  [ "$YES"     = true ] && info "Auto-yes mode"
+  [ "$YES" = true ]     && info "Auto-yes mode"
   echo ""
+
+  # [MỚI] Chạy dependency check TRƯỚC mọi thứ
+  run_step "Kiểm tra dependencies" check_dependencies
 
   case "$TARGET" in
     claude|cursor)
       run_step "Backup config"      step_backup
       run_step "ECC + ccg-workflow" step_ecc
       run_step "MCP servers"        step_mcp
-      run_step "GitNexus"           step_gitnexus
+      run_step "Graphify"           step_graphify
       run_step "Shell aliases"      step_aliases
       ;;
     codex)
-      run_step "Backup config"  step_backup
-      run_step "Codex CLI"      step_codex
-      run_step "GitNexus"       step_gitnexus
-      run_step "Shell aliases"  step_aliases
+      run_step "Backup config" step_backup
+      run_step "Codex CLI"     step_codex
+      run_step "Graphify"      step_graphify
+      run_step "Shell aliases" step_aliases
       ;;
   esac
 
-  # Project scope — chạy sau global, override lên trên
   if [ -n "$PROJECT_PATH" ]; then
     run_step "Project scope → $PROJECT_PATH" step_project
   fi

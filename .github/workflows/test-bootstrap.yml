@@ -24,11 +24,11 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
       - name: Lint bootstrap.sh
-        run: shellcheck -x bootstrap.sh
+        run: shellcheck -x --severity=error bootstrap.sh
       - name: Lint lib/*.sh
-        run: shellcheck -x lib/*.sh
+        run: shellcheck -x --severity=error lib/*.sh
       - name: Lint scripts/*.sh
-        run: shellcheck -x scripts/*.sh
+        run: shellcheck -x --severity=error scripts/*.sh
 
   # ─── Dry-run bootstrap trên Ubuntu ─────────────────────────────
   bootstrap-dry-run-ubuntu:

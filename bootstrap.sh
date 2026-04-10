@@ -48,7 +48,9 @@ while [[ $# -gt 0 ]]; do
     --yes|-y) YES=true; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
     --rollback)
+      # shellcheck disable=SC1091
       source "$SCRIPT_DIR/lib/common.sh"
+      # shellcheck disable=SC1091
       source "$SCRIPT_DIR/lib/backup.sh"
       step_rollback
       exit $?
@@ -168,6 +170,7 @@ for _lib in common backup ecc mcp graphify codex aliases project; do
     echo "Missing lib file: $_f"
     exit 1
   fi
+  # shellcheck disable=SC1090
   source "$_f"
 done
 unset _lib _f

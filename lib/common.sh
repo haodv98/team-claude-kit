@@ -6,16 +6,21 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
 
 # ─── Logging ─────────────────────────────────────────────────────
-# Tất cả log đều ghi thẳng ra /dev/tty để không bị pipe nuốt mất
+# Ghi ra /dev/tty nếu có (interactive), fallback ra stderr (CI/pipe)
 
-_tty() { printf "%b\n" "$*" > /dev/tty; }
+_tty() {
+  if [ -w /dev/tty ]; then
+    printf "%b\n" "$*" > /dev/tty
+  else
+    printf "%b\n" "$*" >&2
+  fi
+}
 
 ok()     { _tty "  ${GREEN}✓${NC}  $1"; }
 info()   { _tty "  ${CYAN}→${NC}  $1"; }
 warn()   { _tty "  ${YELLOW}⚠${NC}  $1"; }
-err_log(){ _tty "  ${RED}✗${NC}  $1"; }   # err() đã được dùng bởi set -e
+err_log(){ _tty "  ${RED}✗${NC}  $1"; }
 
-# In output của tool (indent, không dùng /dev/tty — để pipe xử lý)
 out()    { echo "    $1"; }
 
 header() {
@@ -25,20 +30,18 @@ header() {
   _tty "${BOLD}${CYAN}══════════════════════════════════════${NC}"
 }
 
-# Section header trong một step
 section() {
   _tty ""
   _tty "  ${BOLD}${BLUE}▸ $1${NC}"
 }
 
-# Alias để tránh lỗi nếu lib nào đó vẫn gọi step()
 step() { section "$@"; }
 
 # ─── ask() ───────────────────────────────────────────────────────
-# Luôn đọc/ghi thẳng /dev/tty — không bị ảnh hưởng bởi pipe
+# CI/pipe: luôn return 0 (auto-yes) vì không có terminal
 ask() {
   [ "${YES:-false}" = true ] && return 0
-  [ ! -e /dev/tty ]          && return 0
+  [ ! -w /dev/tty ]          && return 0   # CI fallback: auto-yes
 
   _tty ""
   printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty
@@ -62,16 +65,6 @@ has()  { command -v "$1" &>/dev/null; }
 need() { has "$1" || { err_log "$1 required. $2"; exit 1; }; }
 
 # ─── run_step() ──────────────────────────────────────────────────
-# Layout:
-#
-#  ╔═ Step: ECC + ccg-workflow
-#  ║
-#  ║  ▸ Cloning ECC          ← section() → /dev/tty trực tiếp
-#  ║  ? Cài ECC plugin?      ← ask()     → /dev/tty trực tiếp
-#      git clone output...   ← stdout của "$fn" → indent 4 spaces
-#  ║
-#  ╚═ ✓ ECC + ccg-workflow (12s)
-
 run_step() {
   local label="$1"
   local fn="$2"
@@ -82,16 +75,19 @@ run_step() {
   _tty "${BOLD}╔═ Step: ${label}${NC}"
   _tty "║"
 
-  # Chạy function trong subshell riêng:
-  # - _tty() và ask() ghi/đọc /dev/tty → không bị pipe ảnh hưởng
-  # - stdout + stderr được indent 4 spaces để phân biệt với section/question
-  # - exit code được ghi ra $exit_file để tránh double-run
-  (
-    "$fn" 2>&1
+  if [ -w /dev/tty ]; then
+    # Interactive: pipe stdout ra /dev/tty với indent
+    (
+      "$fn" 2>&1
+      echo $? > "$exit_file"
+    ) | while IFS= read -r line; do
+      printf "    %s\n" "$line" > /dev/tty
+    done
+  else
+    # CI/headless: chạy thẳng, stdout/stderr ra terminal của runner
+    "$fn"
     echo $? > "$exit_file"
-  ) | while IFS= read -r line; do
-    printf "    %s\n" "$line" > /dev/tty
-  done
+  fi
 
   local fn_exit=0
   [ -s "$exit_file" ] && fn_exit=$(cat "$exit_file")
@@ -134,7 +130,7 @@ print_summary() {
   _tty "  3. ccstart"
   _tty ""
   _tty "  Với mỗi project mới:"
-  _tty "    cài đặt graphify tương ứng và chạy /graphify . với AI Assistant"
+  _tty "    cd [project] && graphify ."
   _tty ""
   _tty "  ${YELLOW}Superpowers (trong Claude Code session):${NC}"
   _tty "    /plugin marketplace add obra/superpowers-marketplace"

@@ -9,11 +9,7 @@ BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
 # Ghi ra /dev/tty nếu có (interactive), fallback ra stderr (CI/pipe)
 
 _tty() {
-  if [ -w /dev/tty ]; then
-    printf "%b\n" "$*" > /dev/tty
-  else
-    printf "%b\n" "$*" >&2
-  fi
+  printf "%b\n" "$*" > /dev/tty 2>/dev/null || printf "%b\n" "$*" >&2
 }
 
 ok()     { _tty "  ${GREEN}✓${NC}  $1"; }
@@ -41,13 +37,12 @@ step() { section "$@"; }
 # CI/pipe: luôn return 0 (auto-yes) vì không có terminal
 ask() {
   [ "${YES:-false}" = true ] && return 0
-  [ ! -w /dev/tty ]          && return 0   # CI fallback: auto-yes
 
-  _tty ""
-  printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty
+  printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty 2>/dev/null || return 0
+
   local REPLY
-  IFS= read -r -n 1 REPLY < /dev/tty
-  printf "\n" > /dev/tty
+  IFS= read -r -n 1 REPLY < /dev/tty 2>/dev/null || return 0
+  printf "\n" > /dev/tty 2>/dev/null || true
   [[ "${REPLY:-n}" =~ ^[Yy]$ ]]
 }
 
@@ -75,19 +70,12 @@ run_step() {
   _tty "${BOLD}╔═ Step: ${label}${NC}"
   _tty "║"
 
-  if [ -w /dev/tty ]; then
-    # Interactive: pipe stdout ra /dev/tty với indent
-    (
-      "$fn" 2>&1
-      echo $? > "$exit_file"
-    ) | while IFS= read -r line; do
-      printf "    %s\n" "$line" > /dev/tty
-    done
-  else
-    # CI/headless: chạy thẳng, stdout/stderr ra terminal của runner
-    "$fn"
+  (
+    "$fn" 2>&1
     echo $? > "$exit_file"
-  fi
+  ) | while IFS= read -r line; do
+    printf "    %s\n" "$line" > /dev/tty 2>/dev/null || printf "    %s\n" "$line" >&2
+  done
 
   local fn_exit=0
   [ -s "$exit_file" ] && fn_exit=$(cat "$exit_file")

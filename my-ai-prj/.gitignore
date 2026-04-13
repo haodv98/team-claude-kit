@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.*.local
+graphify-out/
+.claude/briefing.log
+node_modules/
+.DS_Store
+.claude/sessions/
+.claude/audit.log
+.gitnexus/

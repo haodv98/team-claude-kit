@@ -118,7 +118,7 @@ print_summary() {
   _tty "  3. ccstart"
   _tty ""
   _tty "  Với mỗi project mới:"
-  _tty "    cd [project] && graphify ."
+  _tty "    ccnew"
   _tty ""
   _tty "  ${YELLOW}Superpowers (trong Claude Code session):${NC}"
   _tty "    /plugin marketplace add obra/superpowers-marketplace"

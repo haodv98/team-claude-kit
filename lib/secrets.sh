@@ -46,7 +46,7 @@ keychain_set() {
 load_keychain_secrets() {
   [[ "$(uname)" != "Darwin" ]] && return 0
 
-  local tokens=("GITHUB_PERSONAL_ACCESS_TOKEN" "SENTRY_TOKEN" "FIGMA_TOKEN")
+  local tokens=("GITHUB_PERSONAL_ACCESS_TOKEN" "SENTRY_TOKEN" "FIGMA_TOKEN" "BACKLOG_DOMAIN" "BACKLOG_API_KEY")
   for token in "${tokens[@]}"; do
     if [[ -z "${!token:-}" ]]; then
       local val
@@ -65,6 +65,8 @@ check_required_secrets() {
     "GITHUB_PERSONAL_ACCESS_TOKEN:GitHub MCP"
     "SENTRY_TOKEN:Sentry MCP"
     "FIGMA_TOKEN:Figma MCP"
+    "BACKLOG_DOMAIN:Backlog MCP"
+    "BACKLOG_API_KEY:Backlog MCP"
   )
 
   local missing_any=false
@@ -112,6 +114,9 @@ interactive_setup_secrets() {
     "GITHUB_PERSONAL_ACCESS_TOKEN:GitHub Personal Access Token (scope: repo read, pull_requests read)"
     "SENTRY_TOKEN:Sentry Auth Token (scope: project:read, event:read)"
     "FIGMA_TOKEN:Figma Personal Token (scope: File content read)"
+    "BACKLOG_DOMAIN:Backlog domain đầy đủ (VD: yourteam.backlog.com)"
+    "BACKLOG_API_KEY:Backlog API Key (Settings → API → Generate API Key)"
+    "SLACK_WEBHOOK_URL:Slack Webhook URL (cho morning briefing)"
   )
 
   for entry in "${tokens[@]}"; do

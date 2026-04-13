@@ -24,4 +24,10 @@ node_modules/
 
 # ─── Logs ────────────────────────────────────────────────────────
 *.log
-bootstrap-error.log
+bootstrap-error.log.claude/sessions/
+.claude/audit.log
+.gitnexus/
+.claude/sessions/
+
+# ─── Graphify ────────────────────────────────────────────────────
+graphify-out/cache/

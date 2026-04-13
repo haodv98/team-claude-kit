@@ -227,7 +227,60 @@ _setup_codex_extra_mcp() {
     return 0
   fi
 
-  _add_mcp() {
+  local mcp_json="$CODEX_HOME/mcp.json"
+  mkdir -p "$CODEX_HOME"
+
+  # ── Auto-write mcp.json với core MCPs ───────────────────────────
+  if [[ ! -f "$mcp_json" ]]; then
+    cat > "$mcp_json" << 'JSON'
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@latest"]
+    }
+  }
+}
+JSON
+    ok "mcp.json created (context7 + sequential-thinking)"
+  else
+    ok "mcp.json đã có — giữ nguyên"
+  fi
+
+  # ── Thêm Backlog nếu có credentials ─────────────────────────────
+  if [[ -n "${BACKLOG_DOMAIN:-}" && -n "${BACKLOG_API_KEY:-}" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+      BACKLOG_DOMAIN="$BACKLOG_DOMAIN" BACKLOG_API_KEY="$BACKLOG_API_KEY" \
+      MCP_JSON_PATH="$mcp_json" python3 -c "
+import json, os
+path = os.environ['MCP_JSON_PATH']
+with open(path) as f:
+    cfg = json.load(f)
+cfg.setdefault('mcpServers', {})['backlog'] = {
+    'command': 'npx',
+    'args': ['-y', 'backlog-mcp-server@latest'],
+    'env': {
+        'BACKLOG_DOMAIN': os.environ['BACKLOG_DOMAIN'],
+        'BACKLOG_API_KEY': os.environ['BACKLOG_API_KEY']
+    }
+}
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+" 2>/dev/null && ok "Backlog MCP added to mcp.json" || \
+        warn "Backlog MCP: thêm thủ công vào $mcp_json"
+    else
+      warn "python3 không có — thêm Backlog MCP thủ công vào $mcp_json"
+    fi
+  else
+    info "Backlog MCP: thiếu BACKLOG_DOMAIN/BACKLOG_API_KEY — bỏ qua"
+  fi
+
+  # ── Interactive: Sentry + Figma (HTTP transport) ─────────────────
+  _add_mcp_http() {
     local name="$1" cmd="$2" desc="$3"
     if ask "Cài MCP: $name ($desc)?"; then
       info "Đang thêm $name..."
@@ -243,17 +296,16 @@ _setup_codex_extra_mcp() {
     fi
   }
 
-  # Sentry và Figma thường không có trong ECC mặc định
-  if [ -n "${SENTRY_TOKEN:-}" ]; then
-    _add_mcp "sentry" \
+  if [[ -n "${SENTRY_TOKEN:-}" ]]; then
+    _add_mcp_http "sentry" \
       "codex mcp add --transport http sentry https://mcp.sentry.dev/mcp --header 'Authorization: Bearer $SENTRY_TOKEN'" \
       "production error debugging"
   else
     info "Sentry MCP: export SENTRY_TOKEN='sntrys_...' rồi chạy lại"
   fi
 
-  if [ -n "${FIGMA_TOKEN:-}" ]; then
-    _add_mcp "figma" \
+  if [[ -n "${FIGMA_TOKEN:-}" ]]; then
+    _add_mcp_http "figma" \
       "codex mcp add --transport http figma https://mcp.figma.com/mcp --header 'Authorization: Bearer $FIGMA_TOKEN'" \
       "design to code"
   else

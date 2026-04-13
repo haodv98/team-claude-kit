@@ -31,7 +31,15 @@ step_aliases() {
 alias ccstart='bash "${timer_script}" & claude'
 alias cctime='bash "${timer_script}" status'
 alias ccnew='bash "${new_project}"'
-alias ccupdate='cd "$HOME/everything-claude-code" && git pull --quiet && bash install.sh --target ${TARGET} ${LANGUAGES} && echo "ECC updated"'
+alias ccupdate='bash "${SCRIPT_DIR}/scripts/update.sh"'
+alias cchealth='bash "${SCRIPT_DIR}/scripts/cchealth.sh"'
+alias ccmorning='claude --print "Morning briefing: 1) Dùng Backlog MCP để lấy issues được assign cho tôi với status != Done, 2) Kiểm tra file todos/claimed.md, 3) Đề xuất task ưu tiên cho hôm nay theo urgency và dependency"'
+alias cceod='claude --print "EOD wrap: 1) Liệt kê commits của tôi hôm nay (git log --oneline --author=\$(git config user.email) --since=midnight), 2) Dùng Backlog MCP để add progress comment vào task đang làm, 3) Gợi ý commit message cho staged changes"'
+alias ccclaim='bash "${SCRIPT_DIR}/scripts/claim-task.sh"'
+alias ccunclaim='bash "${SCRIPT_DIR}/scripts/claim-task.sh" --unclaim'
+alias ccclaimed='cat "${SCRIPT_DIR}/todos/claimed.md" 2>/dev/null || echo "Chưa có claimed tasks — file todos/claimed.md chưa tồn tại"'
+alias ccbranch='git checkout -b'
+alias ccsync='bash "${SCRIPT_DIR}/scripts/sync.sh"'
 ALIASES
 
   ok "Aliases added → $rc"
@@ -105,8 +113,9 @@ mkdir -p "$DEST/.claude/sessions"
 
 cd "$DEST" && git init --quiet && git add . && git commit -m "chore: init from $TMPL" --quiet
 
-command -v gitnexus &>/dev/null && gitnexus analyze --skills 2>/dev/null \
-  && echo "✓ Indexed with GitNexus" || true
+command -v python3 &>/dev/null \
+  && python3 -m graphify . --no-viz 2>/dev/null \
+  && echo "✓ Indexed with Graphify" || true
 
 echo "✓ $NAME created at $DEST"
 echo "  cd $DEST && pnpm install && ccstart"

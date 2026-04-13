@@ -164,7 +164,7 @@ esac
 export DRY_RUN YES TARGET LANGUAGES PROJECT_PATH SCRIPT_DIR SHELL_RC ERRORS
 
 # ─── Load modules ────────────────────────────────────────────────
-for _lib in common backup ecc mcp graphify codex aliases project; do
+for _lib in common backup ecc mcp graphify secrets codex aliases project; do
   _f="$SCRIPT_DIR/lib/${_lib}.sh"
   if [ ! -f "$_f" ]; then
     echo "Missing lib file: $_f"
@@ -191,14 +191,16 @@ main() {
 
   case "$TARGET" in
     claude|cursor)
-      run_step "Backup config"      step_backup
-      run_step "ECC + ccg-workflow" step_ecc
-      run_step "MCP servers"        step_mcp
-      run_step "Graphify"           step_graphify
-      run_step "Shell aliases"      step_aliases
+      run_step "Backup config"       step_backup
+      run_step "Secrets"             step_secrets   # load .env.local trước MCP
+      run_step "ECC + ccg-workflow"  step_ecc
+      run_step "MCP servers"         step_mcp
+      run_step "Graphify"            step_graphify
+      run_step "Shell aliases"       step_aliases
       ;;
     codex)
       run_step "Backup config" step_backup
+      run_step "Secrets"       step_secrets
       run_step "Codex CLI"     step_codex
       run_step "Graphify"      step_graphify
       run_step "Shell aliases" step_aliases

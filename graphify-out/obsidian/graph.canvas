@@ -1,0 +1,497 @@
+{
+  "nodes": [
+    {
+      "id": "g0",
+      "type": "group",
+      "label": "Project Docs & Frontend Stack",
+      "x": 0,
+      "y": 0,
+      "width": 660,
+      "height": 420,
+      "color": "1"
+    },
+    {
+      "id": "n_AGENTS_document",
+      "type": "file",
+      "file": "graphify/obsidian/AGENTS - Project Real Estate Manager.md",
+      "x": 20,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_CLAUDE_document",
+      "type": "file",
+      "file": "graphify/obsidian/CLAUDE - Project Brain.md",
+      "x": 220,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_nextjs",
+      "type": "file",
+      "file": "graphify/obsidian/Next.js 16 Frontend.md",
+      "x": 420,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_playwright",
+      "type": "file",
+      "file": "graphify/obsidian/Playwright E2E Testing.md",
+      "x": 20,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_postgresql",
+      "type": "file",
+      "file": "graphify/obsidian/PostgreSQL Database.md",
+      "x": 220,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_turborepo",
+      "type": "file",
+      "file": "graphify/obsidian/Turborepo Monorepo.md",
+      "x": 420,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_vitest",
+      "type": "file",
+      "file": "graphify/obsidian/Vitest Testing Framework.md",
+      "x": 20,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g1",
+      "type": "group",
+      "label": "Review & Planning Agents",
+      "x": 740,
+      "y": 0,
+      "width": 660,
+      "height": 420,
+      "color": "2"
+    },
+    {
+      "id": "n_api_response_envelope",
+      "type": "file",
+      "file": "graphify/obsidian/API Response Envelope Format.md",
+      "x": 760,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_agent_code_reviewer",
+      "type": "file",
+      "file": "graphify/obsidian/Code Reviewer Agent.md",
+      "x": 960,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_workflow_plan_tdd_review_ship",
+      "type": "file",
+      "file": "graphify/obsidian/Plan \u2192 TDD \u2192 Review \u2192 Ship Workflow.md",
+      "x": 1160,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_agent_planner",
+      "type": "file",
+      "file": "graphify/obsidian/Planner Agent.md",
+      "x": 760,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_agent_security_reviewer",
+      "type": "file",
+      "file": "graphify/obsidian/Security Reviewer Agent.md",
+      "x": 960,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_agent_tdd_guide",
+      "type": "file",
+      "file": "graphify/obsidian/TDD Guide Agent.md",
+      "x": 1160,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_agent_typescript_reviewer",
+      "type": "file",
+      "file": "graphify/obsidian/TypeScript Reviewer Agent.md",
+      "x": 760,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g2",
+      "type": "group",
+      "label": "Core Prompt & Context Playbooks",
+      "x": 1480,
+      "y": 0,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_playbook_02_context_management",
+      "type": "file",
+      "file": "graphify/obsidian/Context Management Playbook.md",
+      "x": 1500,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_playbook_03_memory_sessions",
+      "type": "file",
+      "file": "graphify/obsidian/Memory Sessions Playbook.md",
+      "x": 1700,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_playbook_01_prompt_patterns",
+      "type": "file",
+      "file": "graphify/obsidian/Prompt Patterns Playbook.md",
+      "x": 1900,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g3",
+      "type": "group",
+      "label": "Team & Agentic OS Playbooks",
+      "x": 2160,
+      "y": 0,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_playbook_06_agentic_os_patterns",
+      "type": "file",
+      "file": "graphify/obsidian/Agentic OS Patterns Playbook.md",
+      "x": 2180,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_playbook_07_daily_workflow",
+      "type": "file",
+      "file": "graphify/obsidian/Daily Workflow Playbook.md",
+      "x": 2380,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_playbook_05_team_workflows",
+      "type": "file",
+      "file": "graphify/obsidian/Team Workflows Playbook.md",
+      "x": 2580,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g4",
+      "type": "group",
+      "label": "Backend Architecture & ORM",
+      "x": 0,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_pattern_controller_service_repository",
+      "type": "file",
+      "file": "graphify/obsidian/Controller \u2192 Service \u2192 Repository \u2192 Prisma Pattern.md",
+      "x": 20,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_nestjs",
+      "type": "file",
+      "file": "graphify/obsidian/NestJS API Framework.md",
+      "x": 220,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_stack_prisma",
+      "type": "file",
+      "file": "graphify/obsidian/Prisma ORM.md",
+      "x": 420,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g5",
+      "type": "group",
+      "label": "Version History",
+      "x": 740,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_CHANGELOG_document",
+      "type": "file",
+      "file": "graphify/obsidian/CHANGELOG.md",
+      "x": 760,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g6",
+      "type": "group",
+      "label": "Project Overview",
+      "x": 1480,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_README_document",
+      "type": "file",
+      "file": "graphify/obsidian/README.md",
+      "x": 1500,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g7",
+      "type": "group",
+      "label": "Architect Agent",
+      "x": 2160,
+      "y": 500,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_agent_architect",
+      "type": "file",
+      "file": "graphify/obsidian/Architect Agent.md",
+      "x": 2180,
+      "y": 580,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g8",
+      "type": "group",
+      "label": "Build Error Resolver",
+      "x": 0,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_agent_build_error_resolver",
+      "type": "file",
+      "file": "graphify/obsidian/Build Error Resolver Agent.md",
+      "x": 20,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g9",
+      "type": "group",
+      "label": "E2E Test Agent",
+      "x": 740,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_agent_e2e_runner",
+      "type": "file",
+      "file": "graphify/obsidian/E2E Runner Agent.md",
+      "x": 760,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g10",
+      "type": "group",
+      "label": "Database Reviewer",
+      "x": 1480,
+      "y": 980,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_agent_database_reviewer",
+      "type": "file",
+      "file": "graphify/obsidian/Database Reviewer Agent.md",
+      "x": 1500,
+      "y": 1060,
+      "width": 180,
+      "height": 60
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_AGENTS_document_CLAUDE_document",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_CLAUDE_document",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_nestjs",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_nestjs",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_nextjs",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_nextjs",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_postgresql",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_postgresql",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_prisma",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_prisma",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_turborepo",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_turborepo",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_vitest",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_vitest",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_AGENTS_document_stack_playwright",
+      "fromNode": "n_AGENTS_document",
+      "toNode": "n_stack_playwright",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_stack_nestjs_pattern_controller_service_repository",
+      "fromNode": "n_stack_nestjs",
+      "toNode": "n_pattern_controller_service_repository",
+      "label": "conceptually_related_to [EXTRACTED]"
+    },
+    {
+      "id": "e_stack_prisma_pattern_controller_service_repository",
+      "fromNode": "n_stack_prisma",
+      "toNode": "n_pattern_controller_service_repository",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_planner_workflow_plan_tdd_review_ship",
+      "fromNode": "n_agent_planner",
+      "toNode": "n_workflow_plan_tdd_review_ship",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_tdd_guide_workflow_plan_tdd_review_ship",
+      "fromNode": "n_agent_tdd_guide",
+      "toNode": "n_workflow_plan_tdd_review_ship",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_code_reviewer_workflow_plan_tdd_review_ship",
+      "fromNode": "n_agent_code_reviewer",
+      "toNode": "n_workflow_plan_tdd_review_ship",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_code_reviewer_api_response_envelope",
+      "fromNode": "n_agent_code_reviewer",
+      "toNode": "n_api_response_envelope",
+      "label": "references [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_security_reviewer_workflow_plan_tdd_review_ship",
+      "fromNode": "n_agent_security_reviewer",
+      "toNode": "n_workflow_plan_tdd_review_ship",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_agent_code_reviewer_agent_typescript_reviewer",
+      "fromNode": "n_agent_code_reviewer",
+      "toNode": "n_agent_typescript_reviewer",
+      "label": "references [INFERRED]"
+    },
+    {
+      "id": "e_playbook_01_prompt_patterns_playbook_02_context_management",
+      "fromNode": "n_playbook_01_prompt_patterns",
+      "toNode": "n_playbook_02_context_management",
+      "label": "conceptually_related_to [INFERRED]"
+    },
+    {
+      "id": "e_playbook_02_context_management_playbook_03_memory_sessions",
+      "fromNode": "n_playbook_02_context_management",
+      "toNode": "n_playbook_03_memory_sessions",
+      "label": "conceptually_related_to [INFERRED]"
+    },
+    {
+      "id": "e_playbook_05_team_workflows_playbook_06_agentic_os_patterns",
+      "fromNode": "n_playbook_05_team_workflows",
+      "toNode": "n_playbook_06_agentic_os_patterns",
+      "label": "conceptually_related_to [INFERRED]"
+    },
+    {
+      "id": "e_playbook_06_agentic_os_patterns_playbook_07_daily_workflow",
+      "fromNode": "n_playbook_06_agentic_os_patterns",
+      "toNode": "n_playbook_07_daily_workflow",
+      "label": "conceptually_related_to [INFERRED]"
+    }
+  ]
+}

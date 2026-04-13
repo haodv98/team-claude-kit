@@ -84,7 +84,7 @@ section "MCP Servers"
 
 if command -v claude >/dev/null 2>&1; then
   mcp_list="$(claude mcp list 2>/dev/null || echo "")"
-  expected_mcps=("context7" "sequential-thinking" "github" "sentry" "figma")
+  expected_mcps=("context7" "sequential-thinking" "github" "sentry" "figma" "backlog")
 
   for mcp in "${expected_mcps[@]}"; do
     if echo "$mcp_list" | grep -q "$mcp"; then
@@ -132,6 +132,8 @@ check_token() {
 check_token "GITHUB_PERSONAL_ACCESS_TOKEN" "GitHub Token"
 check_token "SENTRY_TOKEN"                  "Sentry Token"
 check_token "FIGMA_TOKEN"                   "Figma Token"
+check_token "BACKLOG_DOMAIN"               "Backlog Domain"
+check_token "BACKLOG_API_KEY"              "Backlog API Key"
 
 # Cảnh báo nếu token nằm trong shell RC files (anti-pattern)
 for rc_file in ~/.zshrc ~/.bashrc ~/.bash_profile ~/.profile; do
@@ -195,6 +197,37 @@ if [[ -f "$CLAUDE_MD" ]] && grep -q "graphify" "$CLAUDE_MD" 2>/dev/null; then
   ok "CLAUDE.md — graphify entry có sẵn"
 else
   warn "CLAUDE.md — thiếu graphify entry (chạy bootstrap để fix)"
+fi
+
+# ─── 7. Claim System ─────────────────────────────────────────────
+section "Claim System"
+
+CLAIM_SCRIPT="$SCRIPT_DIR/scripts/claim-task.sh"
+if [[ -f "$CLAIM_SCRIPT" ]]; then
+  ok "claim-task.sh — found"
+  CLAIMED_FILE_CHECK="$SCRIPT_DIR/todos/claimed.md"
+  if [[ -f "$CLAIMED_FILE_CHECK" ]]; then
+    claim_count=$(grep -c "^|" "$CLAIMED_FILE_CHECK" 2>/dev/null || echo 0)
+    active_claims=$(( claim_count > 2 ? claim_count - 2 : 0 ))
+    ok "claimed.md — $active_claims active claim(s)"
+    # Warn about stale claims (>24h)
+    claim_now=$(date +%s)
+    while IFS='|' read -r _ claim_member claim_task _ _ claim_ts _; do
+      [[ "$claim_task" == *"Branch/Task"* ]] && continue
+      claim_ts="${claim_ts// /}"
+      [[ -z "$claim_ts" ]] && continue
+      parsed_ts=$(date -j -f "%Y-%m-%d %H:%M" "$claim_ts" +%s 2>/dev/null || \
+                  date -d "$claim_ts" +%s 2>/dev/null || echo 0)
+      claim_age=$(( (claim_now - parsed_ts) / 3600 ))
+      [[ $claim_age -gt 24 ]] && \
+        warn "Stale: ${claim_task// /} by ${claim_member// /} (${claim_age}h) — ccunclaim?"
+    done < "$CLAIMED_FILE_CHECK"
+  else
+    warn "claimed.md — không tồn tại (sẽ tạo khi claim lần đầu)"
+  fi
+else
+  fail "claim-task.sh — không tìm thấy"
+  ((ISSUES++))
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────

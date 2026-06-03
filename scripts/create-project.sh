@@ -139,52 +139,83 @@ EOF
   info "Memory system: $mem_dir/"
 }
 
-# ─── 3. Personality — CLAUDE.md theo project ─────────────────────
-# Đọc memory + tạo personality riêng cho project này
+# ─── 3. CLAUDE.md — project context + team protocols ────────────
 setup_personality() {
-  info "Tạo CLAUDE.md với personality cho project..."
+  info "Tạo CLAUDE.md với project context + team protocols..."
 
+  # Header project-specific
   cat > "$PROJECT_DIR/CLAUDE.md" << EOF
 # $PROJECT_NAME — Claude Workspace
 
+> Project-level context. Global context tại ~/.claude/CLAUDE.md vẫn áp dụng.
+# userEmail
+The user's email address is $(git config user.email 2>/dev/null || echo "your@email.com").
+# currentDate
+Today's date is $(date '+%Y-%m-%d').
+
 ## Session Start Protocol
-Khi bắt đầu mỗi session, đọc các file sau theo thứ tự:
-1. \`memory/user.md\` — context về project và owner
-2. \`memory/decisions.md\` — các quyết định kỹ thuật đã có
-3. \`memory/people.md\` — stakeholders liên quan
-4. \`memory/preferences.md\` — coding style và tool preferences
+Khi bắt đầu mỗi session, đọc theo thứ tự:
+1. \`memory/decisions.md\` — quyết định kỹ thuật đã có
+2. \`memory/preferences.md\` — coding style của project
+3. \`memory/user.md\` — context về project và owner
 
-Sau khi đọc, tóm tắt ngắn: "Đây là project [tên], đang ở phase [phase], ưu tiên hiện tại là [...]"
+Tóm tắt: "Project $PROJECT_NAME, phase [x], đang làm [y], context quan trọng: [z]"
 
-## Personality & Communication Style
-- Trả lời bằng tiếng Việt trừ khi code/technical terms
-- Ngắn gọn và thực tế — không giải thích dài dòng khi không cần
-- Khi không chắc: hỏi thay vì đoán
-- Ưu tiên giải pháp đơn giản, có thể maintain được
+## Communication Style
+- Tiếng Việt trừ khi code/technical terms
+- Ngắn gọn, thực tế — không giải thích dài dòng khi không cần
+- Không chắc → hỏi thay vì đoán
 
 ## Decision Making
 - Tham chiếu \`memory/decisions.md\` trước khi đề xuất hướng mới
-- Nếu quyết định mới mâu thuẫn với quyết định cũ, hỏi xác nhận
+- Quyết định mới mâu thuẫn với cũ → hỏi xác nhận
 - Log quyết định quan trọng vào \`memory/decisions.md\`
 
-## Session End Protocol (hook: PostToolUse)
-Trước khi đóng session, cập nhật:
-- \`memory/decisions.md\` nếu có quyết định mới
-- \`memory/user.md\` nếu context project thay đổi
-- \`memory/preferences.md\` nếu phát hiện pattern mới
-
 ## Project-Specific Rules
-<!-- Thêm rules riêng cho project này -->
+<!-- Thêm rules riêng cho project này bên dưới -->
 
-## Graphify
-Khi cần navigate codebase lớn: \`/graphify .\`
-Output tại \`graphify-out/\` — đọc \`GRAPH_REPORT.md\` để bắt đầu.
 EOF
+
+  # Append team protocols từ claude/CLAUDE.md nếu có
+  local team_md="$SCRIPT_DIR/claude/CLAUDE.md"
+  if [ -f "$team_md" ]; then
+    echo "" >> "$PROJECT_DIR/CLAUDE.md"
+    cat "$team_md" >> "$PROJECT_DIR/CLAUDE.md"
+    info "Team protocols appended từ claude/CLAUDE.md"
+  fi
 
   info "CLAUDE.md đã tạo tại $PROJECT_DIR/CLAUDE.md"
 }
 
-# ─── 4. Morning Briefing System ──────────────────────────────────
+# ─── 4. Enforcement hooks ────────────────────────────────────────
+setup_hooks() {
+  info "Installing enforcement hooks..."
+  local src="$SCRIPT_DIR/claude/hooks"
+  local dest="$PROJECT_DIR/.claude/hooks"
+
+  if [ ! -d "$src" ]; then
+    info "No hooks directory (claude/hooks/) — skipping"
+    return 0
+  fi
+
+  mkdir -p "$dest"
+  for f in "$src"/*.sh; do
+    [ -e "$f" ] || continue
+    cp "$f" "$dest/"
+    chmod +x "$dest/$(basename "$f")"
+  done
+  info "Hooks installed → .claude/hooks/"
+
+  # Copy settings.json với hook config
+  local settings_src="$SCRIPT_DIR/claude/settings.json"
+  if [ -f "$settings_src" ]; then
+    mkdir -p "$PROJECT_DIR/.claude"
+    cp "$settings_src" "$PROJECT_DIR/.claude/settings.json"
+    info "settings.json (with hooks) installed → .claude/settings.json"
+  fi
+}
+
+# ─── 5. Morning Briefing System ──────────────────────────────────
 setup_morning_briefing() {
   info "Tạo morning briefing system..."
   local scripts_dir="$PROJECT_DIR/.claude/scripts"
@@ -390,6 +421,7 @@ main() {
   run_step "Project directory"      setup_project_dir
   run_step "Persistent memory"      setup_memory
   run_step "CLAUDE.md + Personality" setup_personality
+  run_step "Enforcement hooks"      setup_hooks
   run_step "Morning briefing"       setup_morning_briefing
   run_step "To-do dashboard"        setup_todo_dashboard
   run_step "Gitignore"              setup_gitignore

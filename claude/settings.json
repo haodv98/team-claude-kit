@@ -1,0 +1,37 @@
+{
+  "model": "claude-sonnet-4-6",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f .claude/hooks/pre-commit-gate.sh ] && bash .claude/hooks/pre-commit-gate.sh || exit 0'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f .claude/hooks/post-edit-quality.sh ] && bash .claude/hooks/post-edit-quality.sh || exit 0'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -f .claude/hooks/stop-verify.sh ] && bash .claude/hooks/stop-verify.sh || exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}

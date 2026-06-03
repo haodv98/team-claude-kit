@@ -2,97 +2,96 @@
 
 Bộ cấu hình Claude Code chuẩn cho team — setup một lần, dùng mãi.
 
-Xây dựng trên nền [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) (ECC) với bổ sung thêm [GitNexus](https://github.com/abhigyanpatwari/GitNexus) và MCP servers thiết yếu.
+Xây dựng trên nền [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) (ECC). Thêm enforcement layer, project skeleton, member operations, và team lead playbook.
 
 ---
 
-## Yêu cầu
+## Requirements
 
 | Tool | Version | Ghi chú |
 |------|---------|---------|
 | `git` | any | Bắt buộc |
 | `node` / `npm` | 18+ | Bắt buộc |
-| `claude` | latest | Cài bên dưới nếu chưa có |
+| `python3` | 3.10+ | Bắt buộc (Graphify + JSON helpers) |
+| `claude` | latest | Bắt buộc — cài bên dưới nếu chưa có |
 | `docker` | any | Chỉ cần nếu dùng GitHub MCP |
 
 ---
 
 ## Cài đặt
 
-### Bước 1 — Cài Claude Code (nếu chưa có)
+### Bước 1 — Cài Claude Code
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
 claude login
 ```
 
-### Bước 2 — Clone repo
+### Bước 2 — Clone và chạy bootstrap
 
 ```bash
 git clone git@github.com:[org]/team-claude-kit.git ~/team-claude-kit
 cd ~/team-claude-kit
-```
 
-### Bước 3 — Chạy bootstrap
-
-```bash
 # Mặc định: target=claude, language=typescript
 bash bootstrap.sh
 
-# Chỉ định rõ
-bash bootstrap.sh --target claude --languages typescript
-
-# Nhiều ngôn ngữ
+# Với ngôn ngữ cụ thể
 bash bootstrap.sh --target claude --languages "typescript python"
 
-# Cursor thay vì Claude Code
+# Cursor
 bash bootstrap.sh --target cursor --languages typescript
 
-# Codex thay vì Claude Code
-bash bootstrap.sh --target codex --languages typescript
-
-# Global + project cụ thể
-bash bootstrap.sh --target claude --project ~/workspace/my-app
-
-# Thư mục hiện tại
-bash bootstrap.sh --target claude --project .
-
 # Dry-run xem trước
-bash bootstrap.sh --target claude --project ~/workspace/my-app --dry-run
-
-# Không cần confirm (CI/CD hoặc onboard nhanh)
-bash bootstrap.sh --yes
-
-# Xem trước không thực thi
 bash bootstrap.sh --dry-run
 ```
 
-Bootstrap sẽ tự động:
-- Fork và cài ECC (38 agents, 156 skills, 72 commands, hooks)
-- Khởi tạo ccg-workflow runtime (cho `/multi-*` commands)
-- Cài MCP servers: context7, sequential-thinking, github, sentry, figma
-- Cài GitNexus và configure MCP
-- Thêm aliases vào `~/.zshrc`
+Bootstrap tự động:
+1. Dependency check (fail sớm, message rõ ràng)
+2. Backup config hiện tại (rollback được)
+3. Clone + install ECC (agents, skills, commands, hooks)
+4. Install ccg-workflow runtime (cho `/multi-*` commands)
+5. Install 6 MCP servers: context7, sequential-thinking, github, sentry, figma, backlog
+6. Install Graphify CLI
+7. **Copy enforcement hooks** → `~/.claude/hooks/`
+8. Thêm aliases vào `~/.zshrc`
 
-> Bước nào fail sẽ được log rõ — các bước còn lại vẫn tiếp tục chạy.
-
-#### Rollback Backup Cũ
-
-```bash
-bash bootstrap.sh --target codex --rollback
-```
-
-### Bước 4 — Apply shell aliases
+### Bước 3 — Apply aliases
 
 ```bash
 source ~/.zshrc
+cchealth    # kiểm tra setup
 ```
 
-### Bước 5 — Cài Superpowers plugin (thủ công, trong Claude Code)
+### Bước 4 — Setup project (team lead chạy một lần cho mỗi project)
 
+```bash
+bash bootstrap.sh --project /path/to/your-project
 ```
-/plugin marketplace add obra/superpowers-marketplace
-/plugin install superpowers@superpowers-marketplace
+
+Tạo đầy đủ:
+- `.claude/` với agents, skills, commands, hooks, settings.json
+- `contexts/specs/`, `contexts/adrs/`, `contexts/clarifications/`
+- `docs/roadmap.md`, `docs/architecture.md`, `docs/TEAM-LEAD-SETUP.md`
+- `tasks/phase-1/`, `tasks/TASK-000-template.md`
+- `memory/`, `todos/`
+- `CLAUDE.md` (project context + team protocols), `AGENTS.md`
+- `.claude/member.local.json` (gitignored, per-machine)
+
+### Bước 5 — Team members join project
+
+Mỗi thành viên chạy bước 1-3, sau đó:
+
+```bash
+bash bootstrap.sh --project /path/to/your-project
+ccme init    # setup member profile cho project này
+cctasks      # xem tasks đang available
+```
+
+### Rollback
+
+```bash
+bash bootstrap.sh --rollback
 ```
 
 ---
@@ -101,11 +100,12 @@ source ~/.zshrc
 
 | Flag | Giá trị | Mặc định | Mô tả |
 |------|---------|---------|-------|
-| `--target` | `claude` \| `cursor` | `claude` | Editor target cho ECC |
-| `--languages` | `typescript python golang rust php web swift` | `typescript` | Ngôn ngữ cần cài rules |
+| `--target` | `claude` \| `cursor` \| `codex` | `claude` | Editor target |
+| `--languages` | `typescript python golang rust php web swift` | `typescript` | Rules ngôn ngữ |
+| `--project` | path | — | Cài đầy đủ skeleton vào project |
 | `--yes` / `-y` | — | false | Auto-accept tất cả prompts |
 | `--dry-run` | — | false | Preview, không thực thi |
-| `--help` | — | — | Hiện hướng dẫn |
+| `--rollback` | — | — | Rollback backup gần nhất |
 
 **Alias ngôn ngữ:** `ts` = typescript, `py` = python, `go` = golang, `rs` = rust
 
@@ -116,111 +116,137 @@ source ~/.zshrc
 ### Bắt đầu session
 
 ```bash
-ccstart       # mở Claude Code + bật timer 5 tiếng tự động
-cctime        # xem còn bao nhiêu thời gian trong session
+ccmorning    # briefing: tasks hôm nay + Backlog issues
+ccme         # xem member status (phase, sprint, active task)
+cctasks      # xem tasks còn lại trong phase hiện tại
+ccclaim TASK-003 src/auth/   # claim task + tạo branch tự động
+ccstart      # mở Claude Code + bật timer 5 tiếng
 ```
 
-### Trong Claude Code session
+### Trong Claude Code
 
 ```
-/using-superpowers      # kích hoạt Superpowers skills (bắt đầu mỗi session)
-/onboard                # giới thiệu project cho người mới
-/new-feature            # plan → review → implement feature mới
-/code-review            # review code trước khi tạo PR
-/db-migration           # tư vấn thay đổi schema an toàn
-/wrap-session           # lưu context trước khi đóng
+/tdd "feature"      → TDD workflow: RED → GREEN → REFACTOR
+/code-review        → Review trước khi commit
+/security-scan      → Scan trước khi merge (auth/payment/input)
+/plan "feature"     → Orchestrated planning
+/multi-plan "task"  → Multi-agent decomposition
+/wrap-session       → Lưu context, update memory
+/graphify .         → Graph codebase (navigate không cần quét files)
 ```
 
-### Tạo project mới
+### Kết thúc ngày
 
 ```bash
-ccnew         # wizard chọn template và tạo project
+ccunclaim TASK-003  # release task + clear active task
+cceod               # EOD wrap: commits, Backlog update, commit suggestions
 ```
 
-Templates có sẵn: `nextjs-saas`, `node-api`, `internal-dashboard`, `baas-service`
+### Commands tham khảo
 
-### Graph Source code
+| Alias | Script | Chức năng |
+|-------|--------|-----------|
+| `ccstart` | session-timer.sh | Claude Code + 5h timer |
+| `ccme` | member-init.sh | Member profile (phase, sprint, task) |
+| `cctasks` | task-status.sh | Task overview cho current phase |
+| `ccstatus` | task-status.sh --backlog | cctasks + live Backlog MCP |
+| `ccconflicts` | task-status.sh --conflicts | Detect file ownership conflicts |
+| `ccclaim` | claim-task.sh | Claim task + tạo branch |
+| `ccunclaim` | claim-task.sh --unclaim | Release task |
+| `ccclaimed` | — | Xem claimed.md của project |
+| `ccnew` | create-project.sh | Tạo project mới (wizard) |
+| `ccupdate` | update.sh | Update ECC + ccg-workflow + graphify + MCP |
+| `cchealth` | cchealth.sh | Health check toàn bộ kit |
+| `ccmorning` | claude --print | Morning briefing |
+| `cceod` | claude --print | EOD wrap |
+| `ccsync` | sync.sh | Sync kit từ remote |
 
-Sử dụng thư viện từ [graphify](https://github.com/safishamsi/graphify) để tạo graph
+---
+
+## Enforcement Hooks (tự động, không cần config thêm)
+
+Sau khi bootstrap, 3 hooks tự động active cho mọi project:
+
+| Hook | Trigger | Effect |
+|------|---------|--------|
+| `pre-commit-gate` | `git commit` | **Block** nếu staged source không có test files |
+| `post-edit-quality` | Write/Edit | Warn nếu file chứa auth/crypto/token patterns |
+| `stop-verify` | Session end | Checklist: update memory, wrap-session, git status |
+
+**Bypass TDD gate** (chỉ cho docs/config/chore):
+```bash
+git commit -m "chore: update deps [skip-tests]"
+```
+
+---
+
+## Team Lead — Project Kickoff
+
+Sau khi chạy `bootstrap.sh --project`:
+
+1. Copy specs/PRDs vào `contexts/specs/`
+2. Mở Claude Code: `ccstart`
+3. Đọc playbook: `docs/TEAM-LEAD-SETUP.md` (13 bước)
+
+Playbook hướng dẫn từng bước với prompts ready-to-use:
+- Phân tích specs → `contexts/analysis.md`
+- Confirm UNCLEAR specs → `contexts/clarifications/TBD.md`
+- Tạo ADRs → `contexts/adrs/ADR-NNN-*.md`
+- Tạo Roadmap → `docs/roadmap.md`
+- Breakdown tasks → `tasks/phase-1/TASK-NNN-*.md`
+- Update CLAUDE.md + AGENTS.md với project backbone
+
+---
+
+## Conflict Prevention
+
+3 lớp bảo vệ không giẫm chân nhau:
 
 ```bash
-# Install graphifyy
+# 1. Task-level: block nếu ai đã claim task này
+ccclaim TASK-003     # → ERROR nếu TASK-003 đã claimed
+
+# 2. File-level: warn nếu files overlap
+ccclaim TASK-003 src/auth/   # → WARN nếu src/auth/ đang được dùng
+
+# 3. Visibility: xem ai đang làm gì
+cctasks              # show status + claimant mọi task
+cctasks --conflicts  # Python diff map file ownership
+```
+
+---
+
+## Graphify — Graph codebase
+
+```bash
+# Install (đã chạy tự động bởi bootstrap)
 pip install graphifyy && graphify install
 
-# Cài đặt
-# Claude Code
-graphify install
-
-# Codex
-graphify install --platform codex
-
-# Cursor
-graphify cursor install
-
-# Tạo Graph với AI Assistant - từ lần sau có thể query trực tiếp từ Terminal
+# Trong Claude Code
 /graphify .
 
-# Query
+# Query từ terminal
 graphify query "show the auth flow" --graph graphify-out/graph.json
 ```
 
-### Sync kit (mỗi thứ Hai)
-
-```bash
-ccupdate      # pull ECC mới nhất + reinstall rules cho target hiện tại
-```
-
 ---
 
-## API keys cho MCP
+## API Keys cho MCP
 
-Thêm vào `~/.zshrc` trước khi chạy bootstrap (hoặc chạy lại sau khi thêm):
-
-```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_..."   # github.com/settings/tokens
-export SENTRY_TOKEN="sntrys_..."                # sentry.io/settings/auth-tokens
-export FIGMA_TOKEN="figd_..."                   # figma.com/settings → Personal tokens
-```
-
-Tạo token với scope tối thiểu:
-- **GitHub**: `repo` (read), `pull_requests` (read)
-- **Sentry**: `project:read`, `event:read`
-- **Figma**: `File content` (read)
-
----
-
-## GitNexus — Knowledge graph cho codebase
-
-GitNexus index codebase thành knowledge graph, giúp Claude navigate mà không cần quét từng file.
-
-### Index project mới
+Tạo file `.env.local` trong kit directory (không commit):
 
 ```bash
-cd [project-dir]
-gitnexus analyze --skills    # index + cài agent skills
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...   # github.com/settings/tokens
+SENTRY_TOKEN=sntrys_...                 # sentry.io/settings/auth-tokens
+FIGMA_TOKEN=figd_...                    # figma.com/settings → Personal tokens
+BACKLOG_DOMAIN=yourteam.backlog.com
+BACKLOG_API_KEY=...
 ```
 
-### Các lệnh thường dùng
+Hoặc lưu vào macOS Keychain (secure hơn):
 
 ```bash
-gitnexus status              # xem trạng thái index
-gitnexus analyze --force     # re-index toàn bộ
-gitnexus wiki                # generate docs từ graph
-gitnexus list                # danh sách repos đã index
-```
-
-### Thêm vào package.json (khuyến nghị)
-
-```json
-{
-  "scripts": {
-    "graph": "gitnexus analyze --skills"
-  }
-}
-```
-
-```bash
-pnpm graph    # re-index sau khi thêm nhiều file mới
+bash scripts/setup-secrets.sh
 ```
 
 ---
@@ -229,124 +255,108 @@ pnpm graph    # re-index sau khi thêm nhiều file mới
 
 ```
 team-claude-kit/
-├── bootstrap.sh          # Entry point
+├── bootstrap.sh              # Entry point
 ├── lib/
-│   ├── common.sh         # Logging, helpers, step runner
-│   ├── ecc.sh            # Everything Claude Code + ccg-workflow
-│   ├── mcp.sh            # MCP servers
-│   ├── gitnexus.sh       # GitNexus knowledge graph
-│   └── aliases.sh        # Shell aliases + helper scripts
-├── claude/
-│   └── CLAUDE.md         # Team context override
+│   ├── common.sh             # Logging, step runner, helpers
+│   ├── backup.sh             # Backup + rollback (5 generations)
+│   ├── secrets.sh            # 3-tier secret loading
+│   ├── ecc.sh                # ECC + ccg-workflow + global hooks
+│   ├── mcp.sh                # 6 MCP servers
+│   ├── graphify.sh           # Graphify CLI
+│   ├── aliases.sh            # Shell aliases
+│   └── project.sh            # Project scope installer (full skeleton)
+├── claude/                   # Team overrides → copied to every project
+│   ├── CLAUDE.md             # MUST/NEVER team protocols
+│   ├── settings.json         # Hook wiring
+│   └── hooks/
+│       ├── pre-commit-gate.sh    # TDD enforcement
+│       ├── post-edit-quality.sh  # Security pattern detection
+│       └── stop-verify.sh        # Session-end checklist
+├── templates/                # Project templates
+│   ├── AGENTS.md             # Agent roster template
+│   ├── contexts/
+│   │   └── ADR-000-template.md
+│   ├── tasks/
+│   │   └── TASK-000-template.md
+│   └── docs/
+│       ├── roadmap.md
+│       └── architecture.md
 ├── scripts/
-│   ├── session-timer.sh  # Timer 5 tiếng với notification
-│   └── create-project.sh # Wizard tạo project mới
-└── templates/
-    ├── nextjs-saas/
-    ├── node-api/
-    ├── internal-dashboard/
-    └── baas-service/
+│   ├── member-init.sh        # ccme — member profile
+│   ├── task-status.sh        # cctasks — task overview + conflicts
+│   ├── claim-task.sh         # ccclaim / ccunclaim
+│   ├── create-project.sh     # ccnew
+│   ├── session-timer.sh      # ccstart timer
+│   ├── update.sh             # ccupdate
+│   ├── cchealth.sh           # cchealth
+│   └── sync.sh               # ccsync
+├── playbook/
+│   ├── 01-07-*.md            # Workflow guides
+│   └── 09-project-kickoff.md # Team lead setup (13 steps)
+└── .ecc-version              # Pinned ECC commit hash
 ```
-
----
-
-## Workflow cho team
-
-### Git branching
-
-```
-main ← staging ← dev/[tên]/[task]
-```
-
-Mỗi người làm việc trên branch riêng. Rebase thay vì merge.
-
-### Worktree (nhiều task song song)
-
-```bash
-git worktree add ../project-[task] dev/[tên]/[task]
-cd ../project-[task] && ccstart
-```
-
-### Trước khi tạo PR
-
-```bash
-git fetch origin && git rebase origin/main
-# Trong Claude Code:
-/code-review
-```
-
-### Đóng góp vào kit
-
-Khi bạn tạo ra command/agent/skill hay trong project:
-
-1. Copy file vào `team-claude-kit/claude/[agents|skills|commands]/`
-2. Test trong một project khác
-3. Tạo PR vào `team-claude-kit`
-4. Sau khi merge: mọi người `ccupdate` là có ngay
 
 ---
 
 ## Troubleshooting
 
-**Bootstrap fail ở một bước nào đó**
+**Bootstrap fail ở một bước**
 
-Script tự động tiếp tục các bước còn lại. Xem log, fix issue, rồi chạy lại:
-
+Script tiếp tục, log rõ lỗi. Fix rồi chạy lại (idempotent):
 ```bash
 bash bootstrap.sh --target claude --languages typescript
 ```
-
-Các bước đã thành công sẽ detect và skip (idempotent).
 
 **ECC install.sh không tìm thấy**
 
 ```bash
 cd ~/everything-claude-code && git pull
-bash bootstrap.sh --target claude --languages typescript
+bash bootstrap.sh
 ```
 
-**MCP không kết nối được**
+**MCP không kết nối**
 
 ```bash
-# Kiểm tra MCP status
 claude mcp list
-
-# Xóa và cài lại
 claude mcp remove context7
 claude mcp add --scope user --transport stdio context7 -- npx -y @upstash/context7-mcp@latest
 ```
 
-**GitNexus index quá chậm**
+**TDD gate block commit nhầm** (change không cần test)
 
 ```bash
-# Skip embeddings để nhanh hơn (mất semantic search)
-gitnexus analyze --skip-embeddings
+git commit -m "chore: update config [skip-tests]"
 ```
 
-**`ccstart` không tìm thấy**
+**`cctasks` không hiện tasks**
+
+```bash
+ls tasks/phase-1/     # kiểm tra task files có tồn tại không
+ccme init             # set phase nếu member.local.json chưa có
+ccme phase 1          # hoặc set phase thủ công
+```
+
+**`ccclaim` báo conflict**
+
+```bash
+cctasks --conflicts   # xem ai đang claim gì
+# Liên hệ member đó hoặc chờ họ ccunclaim
+```
+
+**`ccstart` / `ccme` không tìm thấy**
 
 ```bash
 source ~/.zshrc
-# Nếu vẫn không được:
-grep "team-claude-kit" ~/.zshrc    # kiểm tra alias đã được thêm chưa
-bash ~/team-claude-kit/bootstrap.sh --yes    # chạy lại
-```
-
-**Context7 báo docs không tìm thấy**
-
-Thêm library ID trực tiếp vào prompt:
-
-```
-"Setup Prisma. use library /prisma/prisma"
-"Next.js middleware. use library /vercel/next.js"
+grep "team-claude-kit" ~/.zshrc    # verify alias đã thêm
+bash bootstrap.sh --yes            # chạy lại nếu cần
 ```
 
 ---
 
-## Liên hệ & đóng góp
+## Đóng góp
 
-- Slack: `#dev-tools`
-- Issues: tạo issue trong repo này
-- PR: welcome — đặc biệt là agents/skills/commands mới
+1. Test thay đổi trong project khác trước
+2. Tạo PR vào repo này
+3. Sau khi merge: team chạy `ccupdate` là có ngay
 
-> Đọc thêm: [ECC Shorthand Guide](https://github.com/affaan-m/everything-claude-code/blob/main/the-shortform-guide.md) và [ECC Longform Guide](https://github.com/affaan-m/everything-claude-code/blob/main/the-longform-guide.md)
+Liên hệ: `#dev-tools` trên Slack

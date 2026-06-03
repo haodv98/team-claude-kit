@@ -16,13 +16,32 @@ source "$SCRIPT_DIR/lib/common.sh"
 [ -f "$SCRIPT_DIR/.env.local" ] && source "$SCRIPT_DIR/.env.local"
 [ -f "$(pwd)/.env.local" ]      && source "$(pwd)/.env.local"
 
-CLAIMED_FILE="$SCRIPT_DIR/todos/claimed.md"
+# Claimed.md lives in the PROJECT, not the kit directory
+CLAIMED_FILE="$(pwd)/todos/claimed.md"
+MEMBER_FILE="$(pwd)/.claude/member.local.json"
 
 # ─── Lấy thông tin member ────────────────────────────────────────
 MEMBER="$(git config user.name 2>/dev/null || echo "${USER:-unknown}")"
 BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "no-branch")"
 CLAIM_TIME="$(date '+%Y-%m-%d %H:%M')"
 ETA="${CLAIM_ETA:-EOD}"
+
+# ─── Sync active task vào member.local.json ──────────────────────
+_update_member_task() {
+  local task="${1:-}"
+  [ ! -f "$MEMBER_FILE" ] && return 0
+  python3 -c "
+import json, os, datetime
+path = '$MEMBER_FILE'
+try:
+    d = json.load(open(path))
+    d['activeTask'] = '''$task'''
+    d['updatedAt'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    json.dump(d, open(path, 'w'), indent=2)
+except:
+    pass
+" 2>/dev/null || true
+}
 
 # ─── Resilient Backlog sync ───────────────────────────────────────
 _sync_to_backlog() {
@@ -90,7 +109,7 @@ unclaim_task() {
   local task_ref="${1:-}"
   local member
   member="$(git config user.name 2>/dev/null || echo "${USER:-unknown}")"
-  local claimed_file="$SCRIPT_DIR/todos/claimed.md"
+  local claimed_file="$(pwd)/todos/claimed.md"
 
   if [[ ! -f "$claimed_file" ]]; then
     echo "claimed.md không tồn tại"; return 1
@@ -116,6 +135,9 @@ unclaim_task() {
     _sync_to_backlog "$task_ref" "Done" \
       "🤖 [team-claude-kit] @$member hoàn thành và release claim"
   fi
+
+  # Clear active task in member.local.json
+  _update_member_task ""
 
   local branch
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
@@ -148,12 +170,12 @@ TASK_REF="${1:-}"
 shift || true
 PATHS=("$@")
 
-if [[ -z "$TASK_REF" || ${#PATHS[@]} -eq 0 ]]; then
+if [[ -z "$TASK_REF" ]]; then
   echo "Usage:"
-  echo "  bash claim-task.sh <task-id> <path1> [path2 ...]"
-  echo "  bash claim-task.sh --unclaim [task-id]"
+  echo "  ccclaim <task-id> [path1 path2 ...]"
+  echo "  ccunclaim [task-id]"
   echo "  bash claim-task.sh --unclaim-stale"
-  echo "  CLAIM_ETA=Tomorrow bash claim-task.sh AUTH-123 src/auth/"
+  echo "  CLAIM_ETA=Tomorrow ccclaim AUTH-123 src/auth/"
   exit 1
 fi
 
@@ -163,12 +185,23 @@ if [[ ! -f "$CLAIMED_FILE" ]]; then
   cat > "$CLAIMED_FILE" << 'EOF'
 # Claimed Tasks
 
-> Claim file/module trước khi làm việc để tránh conflict.
+> Claim task/files trước khi làm để tránh conflict.
 > Unclaim ngay khi xong: ccunclaim
 
 | Member | Branch/Task | Files/Modules | Claimed at | ETA |
 |--------|-------------|---------------|------------|-----|
 EOF
+fi
+
+# ─── Task-level conflict: prevent double-claim same task ─────────
+if grep -q "| $TASK_REF |" "$CLAIMED_FILE" 2>/dev/null; then
+  existing="$(grep "| $TASK_REF |" "$CLAIMED_FILE" | awk -F'|' '{print $2}' | tr -d ' ' | head -1)"
+  if [[ "$existing" != "$MEMBER" ]]; then
+    warn "⚠️  $TASK_REF đã được @$existing claim!"
+    echo "   Liên hệ @$existing hoặc chờ họ ccunclaim trước."
+    echo "   Xem: cctasks --conflicts"
+    exit 1
+  fi
 fi
 
 # ─── Kiểm tra conflict với claims hiện tại ───────────────────────
@@ -206,8 +239,11 @@ PATHS_STR="$(IFS=', '; echo "${PATHS[*]}")"
 NEW_ROW="| $MEMBER | $TASK_REF | $PATHS_STR | $CLAIM_TIME | $ETA |"
 echo "$NEW_ROW" >> "$CLAIMED_FILE"
 
-ok "Đã claim: $PATHS_STR"
+ok "Đã claim: $TASK_REF${PATHS_STR:+ ($PATHS_STR)}"
 ok "Member  : @$MEMBER | Branch: $BRANCH | ETA: $ETA"
+
+# Update member.local.json với active task
+_update_member_task "$TASK_REF"
 
 # ─── Sync lên Backlog ─────────────────────────────────────────────
 info "Syncing $TASK_REF lên Backlog..."

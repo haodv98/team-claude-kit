@@ -196,6 +196,7 @@ main() {
       run_step "ECC + ccg-workflow"  step_ecc
       run_step "MCP servers"         step_mcp
       run_step "Graphify"            step_graphify
+      run_step "Enforcement hooks"   step_global_hooks
       run_step "Shell aliases"       step_aliases
       ;;
     codex)

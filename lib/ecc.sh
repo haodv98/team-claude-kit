@@ -23,14 +23,33 @@ save_pinned_version() {
 
 # ─── Install ECC (lần đầu) ───────────────────────────────────────
 step_ecc() {
+  local pinned; pinned="$(get_pinned_version)"
+
   if [[ ! -d "$ECC_DIR" ]]; then
     info "Cloning Everything Claude Code..."
     run git clone https://github.com/affaan-m/everything-claude-code.git "$ECC_DIR"
-    save_pinned_version
+
+    # Checkout pinned version nếu có, ngược lại pin HEAD
+    if [[ -n "$pinned" ]]; then
+      info "Checking out pinned version ${pinned:0:8}..."
+      run git -C "$ECC_DIR" checkout "$pinned"
+    else
+      save_pinned_version
+    fi
   else
-    info "ECC đã tồn tại tại $ECC_DIR — skip clone"
-    # Nếu chưa có pinned version thì lưu commit hiện tại
-    [[ -z "$(get_pinned_version)" ]] && save_pinned_version
+    local current; current="$(git -C "$ECC_DIR" rev-parse HEAD 2>/dev/null || echo "")"
+
+    if [[ -n "$pinned" && "$pinned" != "$current" ]]; then
+      warn "ECC tại ${current:0:8}, pinned version là ${pinned:0:8}"
+      if ask "Checkout về pinned version?"; then
+        run git -C "$ECC_DIR" checkout "$pinned"
+      fi
+    elif [[ -z "$pinned" ]]; then
+      info "ECC đã tồn tại — lưu commit hiện tại làm pinned version"
+      save_pinned_version
+    else
+      info "ECC đúng pinned version (${current:0:8})"
+    fi
   fi
 
   # Chạy ECC install.sh
@@ -41,9 +60,29 @@ step_ecc() {
   fi
 
   run bash "$install_sh" --target "$TARGET" "$LANGUAGES"
- 
+
   # ccg-workflow runtime
   _install_ccg_workflow
+}
+
+# ─── Copy enforcement hooks vào ~/.claude/hooks/ ─────────────────
+step_global_hooks() {
+  local src="$SCRIPT_DIR/claude/hooks"
+  local dest="$HOME/.claude/hooks"
+
+  [ ! -d "$src" ] && { info "No hooks directory — skipping global hooks"; return 0; }
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] install hooks → ~/.claude/hooks/"; return 0; }
+
+  mkdir -p "$dest"
+  local count=0
+  for f in "$src"/*.sh; do
+    [ -e "$f" ] || continue
+    cp "$f" "$dest/"
+    chmod +x "$dest/$(basename "$f")"
+    ((count++))
+  done
+
+  ok "$count hook(s) installed → ~/.claude/hooks/"
 }
 
 _install_ccg_workflow() {

@@ -76,22 +76,37 @@ step_project() {
   section "Patch .gitignore"
   _patch_gitignore "$proj"
 
-  # ── GitNexus index ────────────────────────────────────────────
-  section "GitNexus index"
-  if has gitnexus && ask "Index project này với GitNexus?"; then
+  # ── Hooks ─────────────────────────────────────────────────────
+  section "Install enforcement hooks"
+  _install_hooks "$proj"
+
+  # ── Project source-of-truth structure ────────────────────────
+  section "Project structure (contexts/memory/docs/tasks)"
+  _setup_project_structure "$proj"
+
+  # ── AGENTS.md ─────────────────────────────────────────────────
+  section "AGENTS.md"
+  _generate_agents_md "$proj"
+
+  # ── Kickoff playbook ──────────────────────────────────────────
+  section "Kickoff playbook"
+  _copy_kickoff_playbook "$proj"
+
+  # ── Graphify index ────────────────────────────────────────────
+  section "Graphify index"
+  if command -v graphify >/dev/null 2>&1 && ask "Index project với Graphify?"; then
     info "Indexing $proj..."
-    local tmp; tmp=$(mktemp)
-    if (cd "$proj" && gitnexus analyze --skills) > "$tmp" 2>&1; then
-      ok "GitNexus index done → $proj/.gitnexus/"
+    if (cd "$proj" && graphify . --no-viz 2>/dev/null); then
+      ok "Graphify index done → $proj/graphify-out/"
     else
-      warn "gitnexus analyze failed:"; sed 's/^/    /' "$tmp"
+      warn "graphify failed — chạy thủ công: cd $proj && graphify ."
     fi
-    rm -f "$tmp"
   fi
 
   _tty ""
   ok "Project scope installed → $proj"
   _tty "  ${DIM}Global (~/.claude/) vẫn là nền — project override lên trên${NC}"
+  _print_next_steps "$proj"
 }
 
 # ─── Helpers ─────────────────────────────────────────────────────
@@ -216,6 +231,198 @@ MD
   ok "CLAUDE.md created → $dest"
 }
 
+# ─── Source-of-truth project structure ──────────────────────────
+_setup_project_structure() {
+  local proj="$1"
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] create project structure"; return 0; }
+
+  local tmpl="$SCRIPT_DIR/templates"
+
+  # contexts/ — specs, ADRs, clarifications
+  mkdir -p "$proj/contexts/specs" "$proj/contexts/adrs" "$proj/contexts/clarifications"
+  touch "$proj/contexts/specs/.gitkeep"
+
+  # ADR template
+  [ -f "$tmpl/contexts/ADR-000-template.md" ] && \
+    cp "$tmpl/contexts/ADR-000-template.md" "$proj/contexts/adrs/"
+
+  # Deferred clarifications placeholder
+  [ -f "$proj/contexts/clarifications/TBD.md" ] || cat > "$proj/contexts/clarifications/TBD.md" << 'EOF'
+# Deferred Clarifications (TBD)
+
+Spec items that need stakeholder confirmation but are deferred.
+Resolve each before the relevant phase/sprint begins.
+
+| ID | Item | Owner | Due | Status |
+|----|------|-------|-----|--------|
+| TBD-001 | [Unclear spec item] | @TBD | Phase 1 | Open |
+EOF
+
+  # docs/ — architecture, roadmap
+  mkdir -p "$proj/docs"
+  [ -f "$tmpl/docs/roadmap.md" ]      && { [ -f "$proj/docs/roadmap.md" ]      || cp "$tmpl/docs/roadmap.md"      "$proj/docs/roadmap.md"; }
+  [ -f "$tmpl/docs/architecture.md" ] && { [ -f "$proj/docs/architecture.md" ] || cp "$tmpl/docs/architecture.md" "$proj/docs/architecture.md"; }
+
+  # tasks/ — phase-1 + template
+  mkdir -p "$proj/tasks/phase-1"
+  touch "$proj/tasks/phase-1/.gitkeep"
+  [ -f "$tmpl/tasks/TASK-000-template.md" ] && \
+    { [ -f "$proj/tasks/TASK-000-template.md" ] || cp "$tmpl/tasks/TASK-000-template.md" "$proj/tasks/"; }
+
+  # memory/ — persistent AI memory (skip if already created by ccnew)
+  mkdir -p "$proj/memory"
+  if [ ! -f "$proj/memory/decisions.md" ]; then
+    cat > "$proj/memory/decisions.md" << 'EOF'
+# Technical Decisions
+
+Format:
+### [YYYY-MM-DD] Decision title
+**Context:** Why needed? **Decision:** What chosen? **Consequences:** Impacts?
+---
+EOF
+    cat > "$proj/memory/people.md"      << 'EOF'
+# People & Stakeholders
+## Team <!-- Name | Role | Area -->
+## Stakeholders <!-- Name | Contact | Concern -->
+EOF
+    cat > "$proj/memory/preferences.md" << 'EOF'
+# Project Preferences
+## Coding Style <!-- conventions, naming, file structure -->
+## Tools & Libraries <!-- preferred choices for this project -->
+## Do / Don't <!-- project-specific dos and don'ts -->
+EOF
+    cat > "$proj/memory/user.md"        << 'EOF'
+# Project Context
+## Goal <!-- one-sentence goal -->
+## Target Users <!-- who uses this? -->
+## Current Phase <!-- Planning / Development / Testing / Production -->
+## Success Metrics <!-- what does success look like? -->
+EOF
+  fi
+
+  # todos/ — active tasks + claim file
+  mkdir -p "$proj/todos"
+  [ -f "$proj/todos/active.md" ] || cat > "$proj/todos/active.md" << 'EOF'
+# Active Tasks
+<!-- - [ ] Task [priority: high/medium/low] [agent: optional] -->
+EOF
+
+  # Initialize member.local.json for current developer (gitignored)
+  local member_file="$proj/.claude/member.local.json"
+  if [ ! -f "$member_file" ]; then
+    local git_name git_email
+    git_name="$(git config user.name 2>/dev/null || echo "")"
+    git_email="$(git config user.email 2>/dev/null || echo "")"
+    python3 -c "
+import json, datetime
+d = {
+  'name': '''$git_name''',
+  'email': '''$git_email''',
+  'phase': 1,
+  'sprint': 1,
+  'activeTask': None,
+  'updatedAt': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+}
+json.dump(d, open('$member_file', 'w'), indent=2)
+" 2>/dev/null && ok "member.local.json created (gitignored)" || true
+  fi
+
+  ok "Project structure created: contexts/ docs/ tasks/ memory/ todos/"
+}
+
+# ─── Generate AGENTS.md from template ───────────────────────────
+_generate_agents_md() {
+  local proj="$1"
+  local dest="$proj/AGENTS.md"
+  local tmpl="$SCRIPT_DIR/templates/AGENTS.md"
+  local proj_name; proj_name="$(basename "$proj")"
+
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] generate AGENTS.md"; return 0; }
+
+  # Skip if already has a real AGENTS.md (not a stub)
+  if [ -f "$dest" ] && [ "$(wc -l < "$dest")" -gt 10 ]; then
+    info "AGENTS.md already exists ($(wc -l < "$dest") lines) — skipping"
+    return 0
+  fi
+
+  if [ -f "$tmpl" ]; then
+    sed "s/{{PROJECT_NAME}}/$proj_name/g; s/{{STACK}}/TBD/g; s/{{DATABASE}}/TBD/g; s/{{TESTING}}/TBD/g" \
+      "$tmpl" > "$dest"
+    ok "AGENTS.md generated → AGENTS.md"
+  else
+    info "No AGENTS.md template found — skipping"
+  fi
+}
+
+# ─── Copy kickoff playbook into project ─────────────────────────
+_copy_kickoff_playbook() {
+  local proj="$1"
+  local src="$SCRIPT_DIR/playbook/09-project-kickoff.md"
+  local dest="$proj/docs/TEAM-LEAD-SETUP.md"
+
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] copy kickoff playbook"; return 0; }
+
+  if [ -f "$src" ]; then
+    cp "$src" "$dest"
+    ok "Team lead playbook → docs/TEAM-LEAD-SETUP.md"
+  else
+    info "Kickoff playbook not found — skipping"
+  fi
+}
+
+# ─── Print next steps for team lead ─────────────────────────────
+_print_next_steps() {
+  local proj="$1"
+  local proj_name; proj_name="$(basename "$proj")"
+
+  _tty ""
+  _tty "  ┌─────────────────────────────────────────────────────────┐"
+  _tty "  │  NEXT STEPS — Team Lead                                 │"
+  _tty "  └─────────────────────────────────────────────────────────┘"
+  _tty ""
+  _tty "  1. Add specs/PRDs:    cp /path/to/spec.md $proj/contexts/specs/"
+  _tty "  2. Open Claude Code:  cd $proj && ccstart"
+  _tty "  3. Follow playbook:   docs/TEAM-LEAD-SETUP.md"
+  _tty ""
+  _tty "  Project structure:"
+  _tty "    contexts/specs/     ← Add PRDs/requirements here"
+  _tty "    contexts/adrs/      ← Architecture decisions (Step 5)"
+  _tty "    docs/roadmap.md     ← Roadmap (Step 7)"
+  _tty "    tasks/phase-1/      ← Task breakdown (Step 8)"
+  _tty "    CLAUDE.md           ← Update with project context (Step 9)"
+  _tty "    AGENTS.md           ← Update team assignments (Step 10)"
+  _tty ""
+  _tty "  Playbook: docs/TEAM-LEAD-SETUP.md"
+  _tty ""
+}
+
+# Copy enforcement hooks từ claude/hooks/ vào project .claude/hooks/
+_install_hooks() {
+  local proj="$1"
+  local src="$SCRIPT_DIR/claude/hooks"
+  local dest="$proj/.claude/hooks"
+
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] install hooks → .claude/hooks/"; return 0; }
+
+  if [ ! -d "$src" ]; then
+    info "No hooks directory in kit (claude/hooks/) — skipping"
+    return 0
+  fi
+
+  mkdir -p "$dest"
+  local count=0
+  for f in "$src"/*.sh; do
+    [ -e "$f" ] || continue
+    cp "$f" "$dest/"
+    chmod +x "$dest/$(basename "$f")"
+    ((count++))
+  done
+
+  [ $count -gt 0 ] \
+    && ok "$count hook(s) installed → .claude/hooks/" \
+    || info "No .sh files in claude/hooks/"
+}
+
 # Thêm .claude/sessions/ vào .gitignore (sessions không nên commit)
 _patch_gitignore() {
   local proj="$1"
@@ -226,6 +433,7 @@ _patch_gitignore() {
   local entries=(
     ".claude/sessions/"
     ".claude/audit.log"
+    ".claude/member.local.json"
     ".gitnexus/"
   )
 

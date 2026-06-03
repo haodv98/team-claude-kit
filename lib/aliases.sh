@@ -37,7 +37,11 @@ alias ccmorning='claude --print "Morning briefing: 1) Dùng Backlog MCP để l�
 alias cceod='claude --print "EOD wrap: 1) Liệt kê commits của tôi hôm nay (git log --oneline --author=\$(git config user.email) --since=midnight), 2) Dùng Backlog MCP để add progress comment vào task đang làm, 3) Gợi ý commit message cho staged changes"'
 alias ccclaim='bash "${SCRIPT_DIR}/scripts/claim-task.sh"'
 alias ccunclaim='bash "${SCRIPT_DIR}/scripts/claim-task.sh" --unclaim'
-alias ccclaimed='cat "${SCRIPT_DIR}/todos/claimed.md" 2>/dev/null || echo "Chưa có claimed tasks — file todos/claimed.md chưa tồn tại"'
+alias ccclaimed='cat "\$(pwd)/todos/claimed.md" 2>/dev/null || echo "No claimed tasks in this project (todos/claimed.md not found)"'
+alias ccme='bash "${SCRIPT_DIR}/scripts/member-init.sh"'
+alias cctasks='bash "${SCRIPT_DIR}/scripts/task-status.sh"'
+alias ccstatus='bash "${SCRIPT_DIR}/scripts/task-status.sh" --backlog'
+alias ccconflicts='bash "${SCRIPT_DIR}/scripts/task-status.sh" --conflicts'
 alias ccbranch='git checkout -b'
 alias ccsync='bash "${SCRIPT_DIR}/scripts/sync.sh"'
 ALIASES

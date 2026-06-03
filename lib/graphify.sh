@@ -40,6 +40,12 @@ _install_graphify_cli() {
   # Package PyPI tạm thời là 'graphifyy' (2 chữ y) trong khi tên 'graphify' đang được reclaim
   run pip install graphifyy
 
+  # Dry-run: pip là no-op nên graphify sẽ không có trong PATH — skip check
+  if [[ "${DRY_RUN:-false}" == true ]]; then
+    info "[dry-run] skip graphify PATH check"
+    return 0
+  fi
+
   # Verify sau khi cài
   if ! command -v graphify >/dev/null 2>&1; then
     warn "graphify CLI chưa thấy trong PATH sau khi cài."

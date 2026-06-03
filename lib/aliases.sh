@@ -57,6 +57,8 @@ alias ccstatus='bash "${SCRIPT_DIR}/scripts/task-status.sh" --backlog'
 alias ccconflicts='bash "${SCRIPT_DIR}/scripts/task-status.sh" --conflicts'
 alias ccbranch='git checkout -b'
 alias ccsync='bash "${SCRIPT_DIR}/scripts/sync.sh"'
+alias ccaudit='bash "${SCRIPT_DIR}/scripts/sprint-audit.sh"'
+alias ccdeploy='bash "${SCRIPT_DIR}/scripts/deploy-gate.sh"'
 ALIASES
 
   ok "Aliases added → $rc"

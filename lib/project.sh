@@ -307,6 +307,12 @@ EOF
 <!-- - [ ] Task [priority: high/medium/low] [agent: optional] -->
 EOF
 
+  # audits/ — sprint-end QA audit reports
+  _setup_audit_structure "$proj"
+
+  # deploys/ — staging + production deploy gate records
+  _setup_deploy_structure "$proj"
+
   # Initialize member.local.json for current developer (gitignored)
   local member_file="$proj/.claude/member.local.json"
   if [ ! -f "$member_file" ]; then
@@ -327,7 +333,7 @@ json.dump(d, open('$member_file', 'w'), indent=2)
 " 2>/dev/null && ok "member.local.json created (gitignored)" || true
   fi
 
-  ok "Project structure created: contexts/ docs/ tasks/ memory/ todos/"
+  ok "Project structure created: contexts/ docs/ tasks/ memory/ todos/ audits/ deploys/"
 }
 
 # ─── Generate AGENTS.md from template ───────────────────────────
@@ -352,6 +358,47 @@ _generate_agents_md() {
   else
     info "No AGENTS.md template found — skipping"
   fi
+}
+
+# ─── Sprint audit structure: audits/ + QA guide ─────────────────
+_setup_audit_structure() {
+  local proj="$1"
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] setup audit structure"; return 0; }
+
+  mkdir -p "$proj/audits/sprint-1"
+  touch "$proj/audits/sprint-1/.gitkeep"
+
+  local src="$SCRIPT_DIR/playbook/10-sprint-audit-playbook.md"
+  local dest="$proj/docs/SPRINT-AUDIT-GUIDE.md"
+  if [ -f "$src" ]; then
+    [ -f "$dest" ] || cp "$src" "$dest"
+    ok "Sprint audit guide → docs/SPRINT-AUDIT-GUIDE.md"
+  else
+    info "Sprint audit playbook not found — skipping"
+  fi
+
+  ok "Audit structure created: audits/sprint-1/"
+}
+
+# ─── Deploy gate structure: deploys/ + deploy guide ──────────────
+_setup_deploy_structure() {
+  local proj="$1"
+  [ "${DRY_RUN:-false}" = true ] && { info "[dry-run] setup deploy structure"; return 0; }
+
+  mkdir -p "$proj/deploys/staging" "$proj/deploys/production"
+  touch "$proj/deploys/staging/.gitkeep"
+  touch "$proj/deploys/production/.gitkeep"
+
+  local src="$SCRIPT_DIR/playbook/11-deploy-playbook.md"
+  local dest="$proj/docs/DEPLOY-GUIDE.md"
+  if [ -f "$src" ]; then
+    [ -f "$dest" ] || cp "$src" "$dest"
+    ok "Deploy guide → docs/DEPLOY-GUIDE.md"
+  else
+    info "Deploy playbook not found — skipping"
+  fi
+
+  ok "Deploy structure created: deploys/staging/ deploys/production/"
 }
 
 # ─── Copy kickoff playbook into project ─────────────────────────
@@ -391,8 +438,14 @@ _print_next_steps() {
   _tty "    tasks/phase-1/      ← Task breakdown (Step 8)"
   _tty "    CLAUDE.md           ← Update with project context (Step 9)"
   _tty "    AGENTS.md           ← Update team assignments (Step 10)"
+  _tty "    audits/sprint-1/    ← Sprint-end QA audits (ccaudit new)"
+  _tty "    deploys/staging/    ← Staging deploy gates (ccdeploy new staging)"
+  _tty "    deploys/production/ ← Production deploy gates (ccdeploy new production)"
   _tty ""
-  _tty "  Playbook: docs/TEAM-LEAD-SETUP.md"
+  _tty "  Playbooks:"
+  _tty "    docs/TEAM-LEAD-SETUP.md     ← Project kickoff"
+  _tty "    docs/SPRINT-AUDIT-GUIDE.md  ← Sprint-end QA audit"
+  _tty "    docs/DEPLOY-GUIDE.md        ← Staging & production deploy"
   _tty ""
 }
 

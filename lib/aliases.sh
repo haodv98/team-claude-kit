@@ -8,14 +8,27 @@ step_aliases() {
 
   section "Shell aliases → $rc"
 
+  # Remove old block (upgrade-safe: always replace with current set)
   if grep -q "# team-claude-kit" "$rc" 2>/dev/null; then
-    ok "Aliases đã có trong $rc — bỏ qua"
-    return 0
-  fi
-
-  if ! ask "Thêm aliases vào $rc?"; then
-    info "Bỏ qua aliases"
-    return 0
+    python3 - "$rc" << 'PYEOF'
+import sys, re
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+content = re.sub(
+    r'\n# team-claude-kit \(target=[^\n]*\)\n(?:alias cc[^\n]*\n)*',
+    '\n',
+    content
+)
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+    info "Removed old alias block — replacing with current set"
+  else
+    if ! ask "Thêm aliases vào $rc?"; then
+      info "Bỏ qua aliases"
+      return 0
+    fi
   fi
 
   local timer_script="$SCRIPT_DIR/scripts/session-timer.sh"

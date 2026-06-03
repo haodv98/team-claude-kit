@@ -6,10 +6,16 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
 
 # ─── Logging ─────────────────────────────────────────────────────
-# Ghi ra /dev/tty nếu có (interactive), fallback ra stderr (CI/pipe)
+# Detect tty once — bash redirect errors bypass same-command 2>/dev/null
+_TTY_AVAIL=false
+{ : > /dev/tty; } 2>/dev/null && _TTY_AVAIL=true
 
 _tty() {
-  printf "%b\n" "$*" > /dev/tty 2>/dev/null || printf "%b\n" "$*" >&2
+  if [[ "$_TTY_AVAIL" == true ]]; then
+    printf "%b\n" "$*" > /dev/tty
+  else
+    printf "%b\n" "$*" >&2
+  fi
 }
 
 ok()     { _tty "  ${GREEN}✓${NC}  $1"; }
@@ -37,12 +43,12 @@ step() { section "$@"; }
 # CI/pipe: luôn return 0 (auto-yes) vì không có terminal
 ask() {
   [ "${YES:-false}" = true ] && return 0
+  [[ "$_TTY_AVAIL" != true ]] && return 0
 
-  printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty 2>/dev/null || return 0
-
+  printf "  ${YELLOW}?${NC}  %s ${DIM}(y/n)${NC} " "$1" > /dev/tty
   local REPLY
   IFS= read -r -n 1 REPLY < /dev/tty 2>/dev/null || return 0
-  printf "\n" > /dev/tty 2>/dev/null || true
+  printf "\n" > /dev/tty
   [[ "${REPLY:-n}" =~ ^[Yy]$ ]]
 }
 
@@ -74,7 +80,11 @@ run_step() {
     "$fn" 2>&1
     echo $? > "$exit_file"
   ) | while IFS= read -r line; do
-    printf "    %s\n" "$line" > /dev/tty 2>/dev/null || printf "    %s\n" "$line" >&2
+    if [[ "$_TTY_AVAIL" == true ]]; then
+      printf "    %s\n" "$line" > /dev/tty
+    else
+      printf "    %s\n" "$line" >&2
+    fi
   done
 
   local fn_exit=0

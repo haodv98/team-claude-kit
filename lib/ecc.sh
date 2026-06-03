@@ -54,12 +54,15 @@ step_ecc() {
 
   # Chạy ECC install.sh
   local install_sh="$ECC_DIR/install.sh"
-  if [[ ! -f "$install_sh" ]]; then
-    err_log "Không tìm thấy $install_sh — hãy chạy lại sau khi git pull"
-    return 1
+  if [[ "${DRY_RUN:-false}" == true ]]; then
+    info "[dry-run] bash $install_sh --target $TARGET $LANGUAGES"
+  else
+    if [[ ! -f "$install_sh" ]]; then
+      err_log "Không tìm thấy $install_sh — hãy chạy lại sau khi git pull"
+      return 1
+    fi
+    bash "$install_sh" --target "$TARGET" "$LANGUAGES"
   fi
-
-  run bash "$install_sh" --target "$TARGET" "$LANGUAGES"
 
   # ccg-workflow runtime
   _install_ccg_workflow

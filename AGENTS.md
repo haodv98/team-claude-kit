@@ -49,6 +49,17 @@ Plan → TDD → Code Review → Security (nếu có) → Commit
 | `pre-commit-gate` | `git commit` | Block nếu thiếu test files |
 | `post-edit-quality` | Write/Edit | Warn nếu security patterns |
 | `stop-verify` | Session end | Checklist: memory, wrap-session, git status |
+| `data-test-id-check` | Write/Edit (*.tsx, *.jsx, *.vue) | Warn nếu interactive element thiếu `data-test-id` |
+
+### `data-test-id` Auto-check Rule
+
+Sau mỗi lần Write/Edit file frontend, agent **tự kiểm tra**:
+
+1. File có chứa `<button`, `<input`, `<select`, `<textarea`, `<a ` không?
+2. Nếu có → kiểm tra element đó đã có `data-test-id` chưa
+3. Nếu thiếu → **thêm ngay**, không chờ PR review
+
+Convention: `{component}-{element}-{type}` (kebab-case). Xem đầy đủ tại `CLAUDE.md`.
 
 ---
 
